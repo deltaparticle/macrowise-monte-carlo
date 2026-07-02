@@ -1,0 +1,89 @@
+{
+  "description": "Indian income tax rules for Monte Carlo simulation",
+  "fy": "FY 2024-25 (AY 2025-26)",
+  "source": "Income Tax Act 1961, Finance Act 2024",
+  "updated": "2026-07-01",
+  "new_regime_slabs_pct": {
+    "0_300k": 0.0,
+    "300k_700k": 5.0,
+    "700k_1M": 10.0,
+    "1M_1.2M": 15.0,
+    "1.2M_1.5M": 20.0,
+    "above_1.5M": 30.0
+  },
+  "new_regime_standard_deduction": 75000,
+  "new_regime_rebate_87a_upto": 700000,
+  "new_regime_cess": 4.0,
+  "old_regime_slabs_pct": {
+    "0_250k": 0.0,
+    "250k_500k": 5.0,
+    "500k_1M": 20.0,
+    "above_1M": 30.0
+  },
+  "old_regime_standard_deduction": 50000,
+  "old_regime_rebate_87a_upto": 500000,
+  "old_regime_cess": 4.0,
+  "capital_gains_tax": {
+    "equity_stcg": {
+      "holding_days": 0,
+      "rate": 0.15
+    },
+    "equity_ltcg": {
+      "holding_days": 365,
+      "rate": 0.1,
+      "exemption_per_fy": 125000
+    },
+    "debt_stcg": {
+      "rate": "slab"
+    },
+    "debt_ltcg": {
+      "holding_years": 3,
+      "rate_with_indexation": 0.2,
+      "rate_without_indexation": 0.1
+    },
+    "elss_ltcg": {
+      "holding_days": 365,
+      "rate": 0.1,
+      "exemption_per_fy": 125000,
+      "lockin_years": 3
+    }
+  },
+  "dividend_tax": {
+    "ddt_abolished": true,
+    "tax_free_upto": 10000000,
+    "above_10L_rate": 0.1,
+    "tds_rate": 0.1
+  },
+  "nps": {
+    "tier1_self_80ccd1b": 50000,
+    "tier1_total_80ccd1": 200000,
+    "tax_free_at_maturity_pct": 60.0,
+    "annuity_40pct_mandatory": true
+  },
+  "epf": {
+    "employee_80c": true,
+    "employer_tax_free_upto": 250000,
+    "interest_rate": 0.0825
+  },
+  "ppf": {
+    "deduction_limit_80c": 150000,
+    "interest_rate": 0.075,
+    "interest_tax_free": true
+  },
+  "stt_rates": {
+    "equity_delivery": 0.001,
+    "equity_intraday": 0.00025,
+    "futures_index": 1e-05,
+    "futures_stock": 1.25e-05,
+    "options": 0.000625
+  },
+  "80c_limit": 150000,
+  "80d_self_family": 25000,
+  "80d_parents": 50000,
+  "80d_senior_citizen": 50000,
+  "80tta_interest_upto": 10000,
+  "80ttb_senior_citizen": 50000,
+  "standard_deduction_salaried": 50000,
+  "home_loan_24b_self_occupied": 200000,
+  "section_80eea": 150000
+}

@@ -1,0 +1,6 @@
+{
+  "note": "FII/DII cash market flow data requires paid NSE subscription.",
+  "today_api": "https://www.nseindia.com/api/fiidiiTradeReact (current day only)",
+  "derivatives_oi": "https://archives.nseindia.com/content/nsccl/fao_participant_oi_DDMMYYYY.csv (from 2013)",
+  "\u66ff\u4ee3": "Use RBI repo rate changes as proxy for FII sentiment (negative correlation)"
+}
