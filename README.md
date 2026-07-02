@@ -8,36 +8,6 @@ Simulate portfolio growth, withdrawal sustainability, and sequence-of-returns ri
 
 ---
 
-## Table of Contents
-
-1. [What This Is](#what-this-is)
-2. [Quick Start](#quick-start)
-3. [Architecture](#architecture)
-4. [Monte Carlo Engine](#monte-carlo-engine)
-5. [Data Sources](#data-sources)
-6. [Asset Registry](#asset-registry)
-7. [Python API](#python-api)
-8. [Web API](#web-api)
-9. [Deployment](#deployment)
-10. [Verification](#verification)
-11. [Roadmap](#roadmap)
-
----
-
-## What This Is
-
-PortfolioVisualizer.com is the gold standard for portfolio Monte Carlo simulations. It has three tabs under "Portfolio Simulation":
-
-| Tab | Status in Macrowise |
-|-----|---------------------|
-| Monte Carlo Simulation | ✅ Implemented |
-| Financial Goals | 🔜 Planned |
-| Asset Liability Modelling | 🔜 Planned |
-
-**Macrowise replicates the first tab** with Indian market data, Indian tax rules, and INR-native output. It uses the same 4 simulation models, same 3 bootstrap methods, and the same output structure as PortfolioVisualizer.
-
----
-
 ## Quick Start
 
 ### Python
