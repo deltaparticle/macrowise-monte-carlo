@@ -178,6 +178,39 @@ def simulate(req: MonteCarloRequest):
         sim = MonteCarlo(config)
         results = sim.run()
 
+        # Convert DataFrames to plain dicts
+        # performance_summary: index=stat_name, columns=p10/p25/p50/p75/p90
+        #   → needs transpose to {stat_name: {p10: val, ...}}
+        # balance_percentiles: index=year, columns=p10/p25/...
+        #   → already {year: {p10: val, ...}}
+        # loss_probabilities: index=threshold, columns=1/3/5/...
+        #   → already {threshold: {1: val, 3: val, ...}}
+
+        perf_df = results.performance_summary
+        # Transpose so keys are stat names, not percentiles
+        perf_out = {}
+        for stat in perf_df.index:
+            row = {}
+            for pct in perf_df.columns:
+                row[pct] = str(perf_df.loc[stat, pct])
+            perf_out[stat] = row
+
+        # balance_percentiles: index = year, columns = p10..p90
+        bal_out = {}
+        for year in results.balance_percentiles.index:
+            row = {}
+            for pct in results.balance_percentiles.columns:
+                row[pct] = float(results.balance_percentiles.loc[year, pct])
+            bal_out[str(year)] = row
+
+        # loss_probabilities: index = threshold, columns = years
+        loss_out = {}
+        for thr in results.loss_probabilities.index:
+            row = {}
+            for yr in results.loss_probabilities.columns:
+                row[yr] = str(results.loss_probabilities.loc[thr, yr])
+            loss_out[thr] = row
+
         return MonteCarloResponse(
             n_simulations=results.n_sims,
             n_years=results.n_years,
@@ -187,9 +220,9 @@ def simulate(req: MonteCarloRequest):
             median_final_balance=results.median_final_balance,
             swr=results.swr,
             pwr=results.pwr,
-            performance_summary=results.performance_summary.to_dict(),
-            balance_percentiles=results.balance_percentiles.to_dict(),
-            loss_probabilities=results.loss_probabilities.to_dict(),
+            performance_summary=perf_out,
+            balance_percentiles=bal_out,
+            loss_probabilities=loss_out,
         )
     except HTTPException:
         raise
