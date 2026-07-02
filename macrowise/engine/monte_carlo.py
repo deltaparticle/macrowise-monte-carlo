@@ -699,7 +699,7 @@ class MonteCarloResults:
 
         for label, values in row_data:
             if "Balance" in label:
-                rows[label] = [f"₹{np.percentile(values, p * 100):,.0f}" for p in pcts]
+                rows[label] = [float(np.percentile(values, p * 100)) for p in pcts]
             elif "Ratio" in label:
                 # Ratios — no % sign, just decimal
                 rows[label] = [f"{np.percentile(values, p * 100):.2f}" for p in pcts]

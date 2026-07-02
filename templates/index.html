@@ -580,7 +580,16 @@ function displayResults(data) {
     if (!perfSummary[key]) continue;
     const vals = perfSummary[key];
     const tr = document.createElement('tr');
-    const fmt = label.includes('Balance') ? v => '₹' + formatCr(parseFloat(v)) : v => v;
+    const isBalance = label.includes('Balance');
+    const isRatio = label.includes('Ratio');
+    const fmt = v => {
+      if (typeof v === 'number' && !isNaN(v)) {
+        if (isBalance) return '₹' + formatCr(v);
+        if (isRatio) return v.toFixed(2);
+        return (v * 100).toFixed(2) + '%';
+      }
+      return String(v);
+    };
     tr.innerHTML = `
       <td class="font-semibold text-slate-700">${label}</td>
       <td>${fmt(vals.p10)}</td>
@@ -691,11 +700,11 @@ function drawTerminalChart(data) {
   // Sample from the balance percentile data to simulate a distribution
   // We use p10, p25, p50, p75, p90 as anchor points
   const perf = data.performance_summary;
-  const p10 = parseFloat(perf['Portfolio End Balance (nominal)']?.p10 || data.median_final_balance * 0.7);
-  const p25 = parseFloat(perf['Portfolio End Balance (nominal)']?.p25 || data.median_final_balance * 0.85);
+  const p10 = parseFloat(perf['Portfolio End Balance (nominal)']?.p10) || data.median_final_balance * 0.7;
+  const p25 = parseFloat(perf['Portfolio End Balance (nominal)']?.p25) || data.median_final_balance * 0.85;
   const p50 = data.median_final_balance;
-  const p75 = parseFloat(perf['Portfolio End Balance (nominal)']?.p75 || data.median_final_balance * 1.2);
-  const p90 = parseFloat(perf['Portfolio End Balance (nominal)']?.p90 || data.median_final_balance * 1.5);
+  const p75 = parseFloat(perf['Portfolio End Balance (nominal)']?.p75) || data.median_final_balance * 1.2;
+  const p90 = parseFloat(perf['Portfolio End Balance (nominal)']?.p90) || data.median_final_balance * 1.5;
   const p5 = p10 * 0.5;
   const p95 = p90 * 1.2;
 
