@@ -3,9 +3,12 @@ FastAPI web service for Macrowise Monte Carlo Simulator.
 Deployed on Render at https://macrowise.onrender.com
 """
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import numpy as np
+from pathlib import Path
 
 from macrowise import MonteCarloConfig, MonteCarlo, CashFlowConfig, format_inr
 
@@ -17,6 +20,14 @@ app = FastAPI(
     ),
     version="1.0.0",
 )
+
+_BASE = Path(__file__).parent
+
+
+@app.get("/", response_class=FileResponse, include_in_schema=False)
+def homepage():
+    """Serve the web UI."""
+    return _BASE / "templates" / "index.html"
 
 
 # ── Request / Response Models ────────────────────────────────────────────────
@@ -69,14 +80,21 @@ class MonteCarloResponse(BaseModel):
 
 # ── Health ───────────────────────────────────────────────────────────────────
 
-@app.get("/", summary="Service status")
-def root():
+@app.get("/api", summary="Service status")
+def api_root():
     return {
         "service": "Macrowise Monte Carlo Simulator",
         "status": "running",
         "version": "1.0.0",
         "docs": "/docs",
+        "ui": "/",
     }
+
+
+@app.get("/", response_class=FileResponse, include_in_schema=False)
+def homepage():
+    """Serve the web UI."""
+    return _BASE / "templates" / "index.html"
 
 
 @app.get("/health", summary="Health check")
@@ -86,7 +104,7 @@ def health():
 
 @app.get("/assets", summary="List available assets")
 def list_assets():
-    from macrowise import list_asset_aliases, list_categories, get_asset
+    from macrowise.data.asset_registry import list_asset_aliases, get_asset
     aliases = list_asset_aliases()
     assets = []
     for alias in aliases:

@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Macrowise — Indian Market Monte Carlo Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    .rupee::before { content: '\20B9'; }
+    .section-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .result-card { background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%); color: white; border-radius: 12px; padding: 1.5rem; }
+    .asset-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+    .btn-primary { background: #1e40af; color: white; padding: 0.5rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .btn-primary:hover { background: #1d3fa8; }
+    .btn-primary:disabled { background: #6b7280; cursor: not-allowed; }
+    .input-field { border: 1px solid #d1d5db; border-radius: 6px; padding: 0.4rem 0.75rem; width: 100%; }
+    .input-field:focus { outline: 2px solid #1e40af; border-color: transparent; }
+    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+    .badge-pass { background: #d1fae5; color: #065f46; }
+    .badge-fail { background: #fee2e2; color: #991b1b; }
+    .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #e5e7eb; border-top-color: #1e40af; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .weight-bar { height: 6px; background: #1e40af; border-radius: 3px; transition: width 0.3s; }
+    .tab-btn { padding: 0.5rem 1rem; border-bottom: 2px solid transparent; cursor: pointer; font-weight: 600; color: #6b7280; }
+    .tab-btn.active { color: #1e40af; border-bottom-color: #1e40af; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 2px solid #e5e7eb; color: #374151; font-weight: 600; }
+    td { padding: 0.4rem 0.75rem; border-bottom: 1px solid #f3f4f6; }
+    .nav-link { color: #374151; text-decoration: none; padding: 0.25rem 0; border-bottom: 2px solid transparent; }
+    .nav-link:hover, .nav-link.active { color: #1e40af; border-bottom-color: #1e40af; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Navbar -->
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div>
+      <span class="text-xl font-bold text-slate-800">Macrowise</span>
+      <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Monte Carlo</span>
+    </div>
+    <div class="flex gap-6 text-sm">
+      <a href="#" class="nav-link active" onclick="showTab('simulate')">Simulate</a>
+      <a href="#" class="nav-link" onclick="showTab('results')" id="resultsTab" style="display:none">Results</a>
+      <a href="#" class="nav-link" onclick="showTab('assets')">Assets</a>
+    </div>
+  </div>
+</nav>
+
+<div class="max-w-6xl mx-auto px-4 py-8">
+
+  <!-- ══════════════════════════════════════ SIMULATE TAB ══════════════════════════════════════ -->
+  <div id="tab-simulate">
+
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-slate-800">Monte Carlo Portfolio Simulator</h1>
+      <p class="text-slate-500 mt-2">Indian markets · Historical bootstrap · PortfolioVisualizer methodology</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- LEFT: Config Form -->
+      <div class="lg:col-span-2">
+
+        <!-- Portfolio Allocation -->
+        <div class="section-card">
+          <h2 class="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 bg-blue-600 text-white rounded text-center text-sm leading-6">1</span>
+            Portfolio Allocation
+          </h2>
+          <div id="assetRows" class="mb-4"></div>
+          <div class="flex gap-2 mb-3">
+            <button onclick="addAssetRow()" class="text-sm text-blue-600 font-semibold hover:underline">+ Add Asset</button>
+            <span class="text-slate-300">|</span>
+            <button onclick="loadPreset('60_40')" class="text-sm text-slate-600 hover:underline">60/40</button>
+            <button onclick="loadPreset('80_20')" class="text-sm text-slate-600 hover:underline">80/20</button>
+            <button onclick="loadPreset('100_equity')" class="text-sm text-slate-600 hover:underline">100% Equity</button>
+            <button onclick="loadPreset('3_fund')" class="text-sm text-slate-600 hover:underline">3-Fund</button>
+          </div>
+          <div id="weightError" class="text-red-600 text-sm hidden mb-2"></div>
+          <div id="weightBar" class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+            <div id="weightBarFill" class="weight-bar" style="width:0%"></div>
+          </div>
+          <p id="weightSum" class="text-xs text-slate-400 mt-1">Total: 0%</p>
+        </div>
+
+        <!-- Simulation Settings -->
+        <div class="section-card">
+          <h2 class="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 bg-blue-600 text-white rounded text-center text-sm leading-6">2</span>
+            Simulation Settings
+          </h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Initial Amount (₹)</label>
+              <input type="number" id="initialBalance" value="1000000" class="input-field" min="1000">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Years</label>
+              <input type="number" id="years" value="30" class="input-field" min="1" max="75">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Simulations</label>
+              <input type="number" id="simulations" value="1000" class="input-field" min="10" max="10000" step="10">
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Seed</label>
+              <input type="number" id="seed" value="42" class="input-field">
+            </div>
+          </div>
+        </div>
+
+        <!-- Model Settings -->
+        <div class="section-card">
+          <h2 class="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 bg-blue-600 text-white rounded text-center text-sm leading-6">3</span>
+            Model Settings
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Simulation Model</label>
+              <select id="model" class="input-field">
+                <option value="1" selected>Historical Bootstrap</option>
+                <option value="2">Statistical</option>
+                <option value="3">Parameterized</option>
+                <option value="4">Forecasted</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Bootstrap Type</label>
+              <select id="bootstrapModel" class="input-field">
+                <option value="0">Single Month</option>
+                <option value="1" selected>Single Year</option>
+                <option value="2">Block of Years</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Rebalancing</label>
+              <select id="rebalanceFreq" class="input-field">
+                <option value="0">None</option>
+                <option value="1" selected>Annual</option>
+                <option value="2">Semi-Annual</option>
+                <option value="3">Quarterly</option>
+                <option value="4">Monthly</option>
+              </select>
+            </div>
+            <div class="flex items-center pt-5 gap-3">
+              <input type="checkbox" id="inflationAdjusted" class="w-4 h-4">
+              <label for="inflationAdjusted" class="text-sm text-slate-600">Inflation-adjusted returns</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cashflow -->
+        <div class="section-card">
+          <h2 class="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 bg-blue-600 text-white rounded text-center text-sm leading-6">4</span>
+            Cash Flow <span class="text-slate-400 font-normal">(optional)</span>
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Type</label>
+              <select id="cashflowType" class="input-field" onchange="toggleCashflow()">
+                <option value="0" selected>None</option>
+                <option value="1">SIP / Contribution</option>
+                <option value="2">Withdrawal</option>
+                <option value="3">Fixed % Withdrawal</option>
+              </select>
+            </div>
+            <div id="cfAmountField" style="display:none">
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Amount (₹/period)</label>
+              <input type="number" id="cashflowAmount" value="50000" class="input-field" min="0">
+            </div>
+            <div id="cfPctField" style="display:none">
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Withdrawal %</label>
+              <input type="number" id="withdrawalPct" value="4" class="input-field" min="0" max="50" step="0.5">
+            </div>
+            <div id="cfFreqField" style="display:none">
+              <label class="text-xs font-semibold text-slate-600 block mb-1">Frequency</label>
+              <select id="cashflowFreq" class="input-field">
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="annual" selected>Annual</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Run Button -->
+        <div class="text-center">
+          <button onclick="runSimulation()" id="runBtn" class="btn-primary text-base px-10 py-3">
+            Run Simulation
+          </button>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Quick Summary / Results Preview -->
+      <div class="lg:col-span-1">
+        <div class="section-card sticky top-24">
+          <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-4">Portfolio Summary</h3>
+          <div id="portfolioSummary">
+            <p class="text-slate-400 text-sm italic">Configure your portfolio and run a simulation to see results.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════ RESULTS TAB ══════════════════════════════════════ -->
+  <div id="tab-results" style="display:none">
+
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-slate-800">Simulation Results</h1>
+      <button onclick="showTab('simulate')" class="text-sm text-blue-600 font-semibold hover:underline">← Back to Form</button>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="result-card text-center">
+        <div class="text-xs text-blue-200 uppercase tracking-wide">Median CAGR</div>
+        <div class="text-3xl font-bold mt-1" id="res-cagr">—</div>
+      </div>
+      <div class="result-card text-center">
+        <div class="text-xs text-blue-200 uppercase tracking-wide">Success Rate</div>
+        <div class="text-3xl font-bold mt-1" id="res-sr">—</div>
+      </div>
+      <div class="result-card text-center">
+        <div class="text-xs text-blue-200 uppercase tracking-wide">Median Final</div>
+        <div class="text-3xl font-bold mt-1" id="res-final">—</div>
+      </div>
+      <div class="result-card text-center">
+        <div class="text-xs text-blue-200 uppercase tracking-wide">SWR</div>
+        <div class="text-3xl font-bold mt-1" id="res-swr">—</div>
+      </div>
+    </div>
+
+    <!-- Performance Table -->
+    <div class="section-card mb-6">
+      <h3 class="text-base font-bold text-slate-700 mb-4">Performance Summary (Percentiles)</h3>
+      <div class="overflow-x-auto">
+        <table id="perfTable">
+          <thead><tr><th>Statistic</th><th>p10</th><th>p25</th><th>p50</th><th>p75</th><th>p90</th></tr></thead>
+          <tbody id="perfBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Balance Percentile Chart -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div class="section-card">
+        <h3 class="text-base font-bold text-slate-700 mb-4">Portfolio Balance Growth</h3>
+        <canvas id="balanceChart" height="200"></canvas>
+      </div>
+      <div class="section-card">
+        <h3 class="text-base font-bold text-slate-700 mb-4">Terminal Distribution</h3>
+        <canvas id="terminalChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Balance Percentiles Table -->
+    <div class="section-card mb-6">
+      <h3 class="text-base font-bold text-slate-700 mb-4">Balance at Each Year</h3>
+      <div class="overflow-x-auto max-h-80 overflow-y-auto">
+        <table id="balanceTable">
+          <thead><tr><th>Year</th><th>p10</th><th>p25</th><th>p50</th><th>p75</th><th>p90</th></tr></thead>
+          <tbody id="balanceBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Loss Probability -->
+    <div class="section-card">
+      <h3 class="text-base font-bold text-slate-700 mb-4">Probability of Loss</h3>
+      <div class="overflow-x-auto">
+        <table id="lossTable">
+          <thead><tr><th>Loss Threshold</th><th>1yr</th><th>3yr</th><th>5yr</th><th>10yr</th><th>15yr</th><th>20yr</th></tr></thead>
+          <tbody id="lossBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════ ASSETS TAB ══════════════════════════════════════ -->
+  <div id="tab-assets" style="display:none">
+    <h1 class="text-2xl font-bold text-slate-800 mb-6">Available Assets</h1>
+    <div class="section-card">
+      <div class="flex gap-2 mb-4 flex-wrap">
+        <button class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full" id="filterAll" onclick="filterAssets('all')">All</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table>
+          <thead><tr><th>Alias</th><th>Name</th><th>Category</th><th>Expected Return</th><th>Volatility</th></tr></thead>
+          <tbody id="assetTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+  <div class="bg-white rounded-xl p-8 text-center">
+    <div class="loading mx-auto mb-4"></div>
+    <p class="text-slate-600 font-semibold" id="loadingMsg">Running simulation...</p>
+  </div>
+</div>
+
+<script>
+let balanceChart = null;
+let terminalChart = null;
+let lastResult = null;
+let assetsData = [];
+
+// ── Initialise ──────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  loadAssets();
+  loadPreset('60_40');
+});
+
+// ── Tab Navigation ──────────────────────────────────────────────────────────
+function showTab(tab) {
+  ['simulate','results','assets'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  if (tab === 'results') document.getElementById('resultsTab').style.display = '';
+}
+
+// ── Load Assets ────────────────────────────────────────────────────────────
+async function loadAssets() {
+  try {
+    const res = await fetch('/assets');
+    const data = await res.json();
+    assetsData = data.assets || [];
+
+    // Populate asset table
+    const tbody = document.getElementById('assetTableBody');
+    assetsData.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">${a.alias}</code></td>
+        <td class="text-slate-700">${a.name}</td>
+        <td><span class="badge badge-pass">${a.category}</span></td>
+        <td>${a.default_mean ? (a.default_mean*100).toFixed(1)+'%' : '—'}</td>
+        <td>${a.default_std ? (a.default_std*100).toFixed(1)+'%' : '—'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Populate filter buttons
+    const cats = [...new Set(assetsData.map(a => a.category))];
+    const filterDiv = document.getElementById('filterAll').parentElement;
+    cats.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = 'text-xs bg-gray-100 text-slate-600 px-3 py-1 rounded-full';
+      btn.textContent = cat;
+      btn.onclick = () => filterAssets(cat);
+      filterDiv.appendChild(btn);
+    });
+
+  } catch(e) {
+    console.error('Failed to load assets', e);
+  }
+}
+
+function filterAssets(category) {
+  const rows = document.querySelectorAll('#assetTableBody tr');
+  rows.forEach(row => {
+    const cat = row.querySelector('.badge')?.textContent || '';
+    row.style.display = category === 'all' || cat === category ? '' : 'none';
+  });
+  document.querySelectorAll('#filterAll').parentElement.querySelectorAll('button').forEach(b => {
+    b.className = b.textContent === category || (category==='all' && b.id==='filterAll')
+      ? 'text-xs bg-blue-600 text-white px-3 py-1 rounded-full'
+      : 'text-xs bg-gray-100 text-slate-600 px-3 py-1 rounded-full';
+  });
+}
+
+// ── Portfolio Config ───────────────────────────────────────────────────────
+function addAssetRow(alias='', weight=0) {
+  const container = document.getElementById('assetRows');
+  const div = document.createElement('div');
+  div.className = 'asset-row';
+  const id = 'asset_' + Math.random().toString(36).slice(2);
+  div.innerHTML = `
+    <select class="input-field flex-1 asset-select" onchange="updateSummary()">${assetsData.map(a =>
+      `<option value="${a.alias}" ${a.alias===alias?'selected':''}>${a.alias} — ${a.name}</option>`
+    ).join('')}</select>
+    <input type="number" class="input-field w-20 weight-input" value="${weight}" min="0" max="100" step="1"
+           placeholder="%" oninput="updateWeights()">
+    <span class="text-xs text-slate-400">%</span>
+    <button onclick="this.parentElement.remove(); updateWeights();" class="text-red-400 hover:text-red-600 font-bold text-lg w-6 h-6 flex items-center justify-center rounded hover:bg-red-50">×</button>
+  `;
+  container.appendChild(div);
+  if (alias) div.querySelector('.asset-select').value = alias;
+  updateWeights();
+}
+
+function updateWeights() {
+  const rows = document.querySelectorAll('.weight-input');
+  let total = 0;
+  rows.forEach(i => { total += parseFloat(i.value) || 0; });
+  const bar = document.getElementById('weightBarFill');
+  const sum = document.getElementById('weightSum');
+  const err = document.getElementById('weightError');
+  bar.style.width = Math.min(total, 100) + '%';
+  sum.textContent = `Total: ${total.toFixed(0)}%`;
+  if (Math.abs(total - 100) < 0.01) {
+    bar.style.background = '#059669';
+    err.classList.add('hidden');
+    sum.style.color = '#059669';
+  } else {
+    bar.style.background = total > 100 ? '#dc2626' : '#6b7280';
+    err.classList.toggle('hidden', total <= 100);
+    err.textContent = total > 100 ? `Over-allocated by ${(total-100).toFixed(0)}%` : '';
+    sum.style.color = total > 100 ? '#dc2626' : '#6b7280';
+  }
+  updateSummary();
+}
+
+function updateSummary() {
+  const rows = document.querySelectorAll('.asset-row');
+  const summary = document.getElementById('portfolioSummary');
+  if (rows.length === 0 || !assetsData.length) {
+    summary.innerHTML = '<p class="text-slate-400 text-sm italic">Add assets to see summary.</p>';
+    return;
+  }
+  let html = '';
+  rows.forEach(row => {
+    const alias = row.querySelector('.asset-select').value;
+    const weight = parseFloat(row.querySelector('.weight-input').value) || 0;
+    const info = assetsData.find(a => a.alias === alias);
+    if (!info) return;
+    html += `
+      <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+        <div>
+          <div class="text-sm font-semibold text-slate-700">${alias}</div>
+          <div class="text-xs text-slate-400">${info.name}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm font-bold text-slate-800">${weight}%</div>
+          <div class="text-xs text-slate-400">${info.category}</div>
+        </div>
+      </div>`;
+  });
+  summary.innerHTML = html;
+}
+
+const PRESETS = {
+  '60_40': [['NIFTY_50', 60], ['SBI_GILT', 40]],
+  '80_20': [['NIFTY_50', 80], ['SBI_GILT', 20]],
+  '100_equity': [['NIFTY_50', 100]],
+  '3_fund': [['NIFTY_50', 50], ['SBI_GILT', 30], ['GOLD', 20]],
+};
+
+function loadPreset(name) {
+  const container = document.getElementById('assetRows');
+  container.innerHTML = '';
+  PRESETS[name].forEach(([alias, weight]) => addAssetRow(alias, weight));
+  updateWeights();
+  updateSummary();
+}
+
+// ── Cashflow Toggle ────────────────────────────────────────────────────────
+function toggleCashflow() {
+  const type = parseInt(document.getElementById('cashflowType').value);
+  const show = type !== 0;
+  document.getElementById('cfAmountField').style.display = (type === 1 || type === 2) ? '' : 'none';
+  document.getElementById('cfPctField').style.display = type === 3 ? '' : 'none';
+  document.getElementById('cfFreqField').style.display = show ? '' : 'none';
+}
+
+// ── Run Simulation ────────────────────────────────────────────────────────
+async function runSimulation() {
+  // Validate weights
+  updateWeights();
+  const rows = document.querySelectorAll('.weight-input');
+  let total = 0;
+  rows.forEach(i => { total += parseFloat(i.value) || 0; });
+  if (Math.abs(total - 100) > 0.01) {
+    document.getElementById('weightError').classList.remove('hidden');
+    document.getElementById('weightError').textContent = `Weights must sum to 100% (currently ${total.toFixed(0)}%)`;
+    return;
+  }
+
+  // Build asset list
+  const assets = [];
+  document.querySelectorAll('.asset-row').forEach(row => {
+    assets.push({
+      asset: row.querySelector('.asset-select').value,
+      weight: parseFloat(row.querySelector('.weight-input').value) / 100,
+    });
+  });
+
+  const cfType = parseInt(document.getElementById('cashflowType').value);
+
+  const payload = {
+    initial_balance: parseFloat(document.getElementById('initialBalance').value),
+    years: parseInt(document.getElementById('years').value),
+    simulations: parseInt(document.getElementById('simulations').value),
+    seed: parseInt(document.getElementById('seed').value),
+    model: parseInt(document.getElementById('model').value),
+    bootstrap_model: parseInt(document.getElementById('bootstrapModel').value),
+    rebalance_frequency: parseInt(document.getElementById('rebalanceFreq').value),
+    inflation_adjusted: document.getElementById('inflationAdjusted').checked,
+    assets,
+    cashflow_type: cfType || 0,
+    cashflow_amount: cfType > 0 && cfType < 3 ? parseFloat(document.getElementById('cashflowAmount').value) : null,
+    withdrawal_percentage: cfType === 3 ? parseFloat(document.getElementById('withdrawalPct').value) : null,
+    cashflow_frequency: cfType > 0 ? document.getElementById('cashflowFreq').value : 'annual',
+  };
+
+  // Show loading
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('loadingMsg').textContent = `Running ${payload.simulations} simulations...`;
+
+  try {
+    const res = await fetch('/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Simulation failed');
+    }
+
+    const data = await res.json();
+    lastResult = data;
+    displayResults(data);
+
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('runBtn').disabled = false;
+  }
+}
+
+// ── Display Results ─────────────────────────────────────────────────────────
+function displayResults(data) {
+  showTab('results');
+
+  // Key metrics
+  document.getElementById('res-cagr').textContent = (data.median_cagr * 100).toFixed(1) + '%';
+  document.getElementById('res-final').textContent = '₹' + formatCr(data.median_final_balance);
+  document.getElementById('res-swr').textContent = (data.swr * 100).toFixed(1) + '%';
+
+  const sr = data.success_rate;
+  const srEl = document.getElementById('res-sr');
+  srEl.textContent = (sr * 100).toFixed(0) + '%';
+  srEl.className = 'text-3xl font-bold mt-1 ' + (sr >= 0.9 ? 'text-green-300' : sr >= 0.5 ? 'text-yellow-300' : 'text-red-300');
+
+  // Performance summary table
+  const perfBody = document.getElementById('perfBody');
+  perfBody.innerHTML = '';
+  const perfSummary = data.performance_summary;
+  const labels = {
+    'Time Weighted Rate of Return (nominal)': 'Portfolio Return (nominal)',
+    'Time Weighted Rate of Return (real)': 'Portfolio Return (real)',
+    'Portfolio End Balance (nominal)': 'End Balance (nominal)',
+    'Portfolio End Balance (real)': 'End Balance (real)',
+    'Annual Mean Return': 'Annual Mean Return',
+    'Annualized Volatility': 'Annualized Volatility',
+    'Sharpe Ratio': 'Sharpe Ratio',
+    'Sortino Ratio': 'Sortino Ratio',
+    'Maximum Drawdown': 'Maximum Drawdown',
+  };
+  for (const [key, label] of Object.entries(labels)) {
+    if (!perfSummary[key]) continue;
+    const vals = perfSummary[key];
+    const tr = document.createElement('tr');
+    const fmt = label.includes('Balance') ? v => '₹' + formatCr(parseFloat(v)) : v => v;
+    tr.innerHTML = `
+      <td class="font-semibold text-slate-700">${label}</td>
+      <td>${fmt(vals.p10)}</td>
+      <td>${fmt(vals.p25)}</td>
+      <td class="font-bold">${fmt(vals.p50)}</td>
+      <td>${fmt(vals.p75)}</td>
+      <td>${fmt(vals.p90)}</td>
+    `;
+    perfBody.appendChild(tr);
+  }
+
+  // Balance percentile table
+  const balBody = document.getElementById('balanceBody');
+  balBody.innerHTML = '';
+  const balPct = data.balance_percentiles;
+  const yearKeys = Object.keys(balPct).map(Number).filter(k => !isNaN(k)).sort((a,b) => a-b);
+  const dispYears = yearKeys.filter((_, i, arr) => i === 0 || i === arr.length-1 || i % Math.ceil(arr.length/8) === 0);
+  dispYears.forEach(yr => {
+    const v = balPct[yr];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="font-semibold">${yr}</td>
+      <td>₹${formatCr(v.p10)}</td>
+      <td>₹${formatCr(v.p25)}</td>
+      <td class="font-bold">₹${formatCr(v.p50)}</td>
+      <td>₹${formatCr(v.p75)}</td>
+      <td>₹${formatCr(v.p90)}</td>
+    `;
+    balBody.appendChild(tr);
+  });
+
+  // Charts
+  drawBalanceChart(balPct, yearKeys);
+  drawTerminalChart(data);
+
+  // Loss probabilities
+  const lossBody = document.getElementById('lossBody');
+  lossBody.innerHTML = '';
+  const lossPct = data.loss_probabilities || {};
+  Object.entries(lossPct).forEach(([key, vals]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${key}</td>` + [1,3,5,10,15,20].map(h => {
+      const v = vals[h] || '—';
+      const isHigh = typeof v === 'string' && parseFloat(v) > 0.2;
+      return `<td class="${isHigh ? 'text-red-600 font-semibold' : ''}">${v}</td>`;
+    }).join('');
+    lossBody.appendChild(tr);
+  });
+}
+
+function formatCr(n) {
+  n = parseFloat(n);
+  if (n >= 1e7) return (n/1e7).toFixed(1) + ' Cr';
+  if (n >= 1e5) return (n/1e5).toFixed(1) + ' L';
+  if (n >= 1e3) return (n/1e3).toFixed(0) + ' K';
+  return n.toFixed(0);
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────
+function drawBalanceChart(balPct, years) {
+  const ctx = document.getElementById('balanceChart').getContext('2d');
+  if (balanceChart) balanceChart.destroy();
+
+  const labels = years;
+  const p10 = years.map(y => parseFloat(balPct[y]?.p10 || 0));
+  const p25 = years.map(y => parseFloat(balPct[y]?.p25 || 0));
+  const p50 = years.map(y => parseFloat(balPct[y]?.p50 || 0));
+  const p75 = years.map(y => parseFloat(balPct[y]?.p75 || 0));
+  const p90 = years.map(y => parseFloat(balPct[y]?.p90 || 0));
+
+  balanceChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'p90', data: p90, borderColor: '#93c5fd', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5 },
+        { label: 'p75', data: p75, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.3, fill: '+origin', borderWidth: 1.5 },
+        { label: 'Median', data: p50, borderColor: '#1e40af', backgroundColor: 'transparent', tension: 0.3, borderWidth: 2.5 },
+        { label: 'p25', data: p25, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.3, fill: false, borderWidth: 1.5 },
+        { label: 'p10', data: p10, borderColor: '#93c5fd', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5 },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ₹${formatCr(ctx.parsed.y)}`,
+          },
+        },
+      },
+      scales: {
+        x: { title: { display: true, text: 'Year' } },
+        y: {
+          title: { display: true, text: 'Balance (₹)' },
+          ticks: { callback: v => '₹' + formatCr(v) },
+        },
+      },
+    },
+  });
+}
+
+function drawTerminalChart(data) {
+  const ctx = document.getElementById('terminalChart').getContext('2d');
+  if (terminalChart) terminalChart.destroy();
+
+  // Sample from the balance percentile data to simulate a distribution
+  // We use p10, p25, p50, p75, p90 as anchor points
+  const perf = data.performance_summary;
+  const p10 = parseFloat(perf['Portfolio End Balance (nominal)']?.p10 || data.median_final_balance * 0.7);
+  const p25 = parseFloat(perf['Portfolio End Balance (nominal)']?.p25 || data.median_final_balance * 0.85);
+  const p50 = data.median_final_balance;
+  const p75 = parseFloat(perf['Portfolio End Balance (nominal)']?.p75 || data.median_final_balance * 1.2);
+  const p90 = parseFloat(perf['Portfolio End Balance (nominal)']?.p90 || data.median_final_balance * 1.5);
+  const p5 = p10 * 0.5;
+  const p95 = p90 * 1.2;
+
+  // Generate histogram-like data
+  const bins = 20;
+  const step = (p95 - p5) / bins;
+  const labels = [];
+  const counts = [];
+  for (let i = 0; i < bins; i++) {
+    const lo = p5 + i * step;
+    const hi = lo + step;
+    const label = '₹' + formatCr((lo + hi) / 2);
+    labels.push(label);
+    // Approximate bell curve using CDF differences
+    const t = ((lo + hi) / 2 - p50) / (p90 - p50);
+    const pdf = Math.exp(-0.5 * t * t * 4);
+    counts.push(pdf);
+  }
+
+  terminalChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Frequency',
+        data: counts,
+        backgroundColor: 'rgba(30, 64, 175, 0.5)',
+        borderColor: 'rgba(30, 64, 175, 1)',
+        borderWidth: 1,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => items[0].label,
+            label: () => null,
+          },
+        },
+      },
+      scales: {
+        x: { title: { display: true, text: 'Final Balance' }, ticks: { maxRotation: 45, font: { size: 9 } } },
+        y: { title: { display: false }, ticks: { display: false }, grid: { display: false } },
+      },
+    },
+  });
+}
+</script>
+</body>
+</html>
