@@ -72,9 +72,9 @@
       <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Monte Carlo</span>
     </div>
     <div class="flex gap-1">
-      <button class="nav-link active" onclick="showTab('simulate')">Simulate</button>
-      <button class="nav-link" onclick="showTab('results')" id="resultsTab" style="display:none">Results</button>
-      <button class="nav-link" onclick="showTab('assets')">Assets</button>
+      <button class="nav-link active" onclick="showTab('simulate', event)">Simulate</button>
+      <button class="nav-link" onclick="showTab('results', event)" id="resultsTab" style="display:none">Results</button>
+      <button class="nav-link" onclick="showTab('assets', event)">Assets</button>
     </div>
   </div>
 </nav>
@@ -578,7 +578,7 @@
         <h1 class="text-2xl font-bold text-slate-800">Simulation Results</h1>
         <p class="text-slate-500 text-sm mt-1" id="resultMeta"></p>
       </div>
-      <button onclick="showTab('simulate')" class="btn-secondary text-sm">← Back to Form</button>
+      <button onclick="showTab('simulate', event)" class="btn-secondary text-sm">← Back to Form</button>
     </div>
 
     <!-- Key Metrics -->
@@ -723,12 +723,12 @@ window.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════
 // Tab Navigation
 // ═══════════════════════════════════════════════════════════
-function showTab(tab) {
+function showTab(tab, event) {
   ['simulate','results','assets'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-  event.target.classList.add('active');
+  if (event) event.target.classList.add('active');
   if (tab === 'results') {
     document.getElementById('resultsTab').style.display = '';
     if (lastResult) displayResults(lastResult);
