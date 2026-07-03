@@ -1,4 +1,4 @@
-"""
+ """
 Monte Carlo Engine — main simulation orchestrator.
 
 Implements all 4 PV simulation models:

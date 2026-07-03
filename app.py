@@ -47,12 +47,52 @@ class MonteCarloRequest(BaseModel):
         description="Portfolio asset allocations",
     )
     model: int = Field(1, ge=1, le=4, description="1=Historical, 2=Statistical, 3=Parameterized, 4=Forecasted")
+    time_series_model: int = Field(1, ge=1, le=3, description="1=Normal, 3=GARCH")
     bootstrap_model: int = Field(1, ge=0, le=2, description="0=SingleMonth, 1=SingleYear, 2=Block")
+    bootstrap_min_years: int = Field(1, ge=1, le=30, description="Minimum block length for bootstrap")
+    bootstrap_max_years: int = Field(20, ge=1, le=30, description="Maximum block length for bootstrap")
+    circular_bootstrap: bool = Field(True, description="Allow block bootstrapping to be circular")
+    rebalance_frequency: int = Field(1, ge=0, le=4, description="0=None, 1=Annual, 2=Semi-Annual, 3=Quarterly, 4=Monthly")
     inflation_adjusted: bool = Field(True, description="Return results in real (inflation-adjusted) terms")
-    cashflow_type: Optional[int] = Field(None, description="0=None, 1=Contribute, 2=Withdraw, 3=Fixed% withdrawal")
+    inflation_model: int = Field(1, ge=1, le=2, description="1=Historical, 2=Parameterized")
+    inflation_mean: float = Field(0.04, ge=0, le=1, description="Mean inflation rate")
+    inflation_volatility: float = Field(0.03, ge=0, le=1, description="Inflation volatility")
+    sequence_stress_test: int = Field(0, ge=0, le=10, description="0=None, 1-10=Worst N years first")
+
+    # Statistical/Parameterized model settings
+    historical_volatility: bool = Field(True, description="Use historical volatility or specify expected")
+    historical_correlations: bool = Field(True, description="Use historical correlations or import custom")
+    custom_means: Optional[List[float]] = Field(None, description="Custom mean returns for each asset")
+    custom_stds: Optional[List[float]] = Field(None, description="Custom standard deviations for each asset")
+    custom_correlation: Optional[List[List[float]]] = Field(None, description="Custom correlation matrix")
+    risk_free_rate: float = Field(0.0483, ge=0, le=1, description="Risk-free rate for Sharpe ratio")
+    distribution_type: int = Field(1, ge=1, le=2, description="1=Normal, 2=Fat-tailed")
+    degrees_of_freedom: int = Field(30, ge=5, le=50, description="Degrees of freedom for t-distribution")
+
+    # Time series settings
+    use_full_history: bool = Field(True, description="Use full available history for asset returns")
+    start_year: Optional[int] = Field(None, description="Start year for historical returns")
+    end_year: Optional[int] = Field(None, description="End year for historical returns")
+
+    # Cash flow inputs
+    cashflow_type: Optional[int] = Field(None, description="0=None, 1=Contribute, 2=Withdraw, 3=Fixed%, 4=Life Exp, 5=Rolling Avg, 6=Geometric")
     cashflow_amount: Optional[float] = Field(None, description="Cashflow amount (INR per period)")
-    cashflow_frequency: Optional[str] = Field("annual", description="monthly, quarterly, annual")
+    cashflow_frequency: Optional[str] = Field(None, description="monthly, quarterly, annual")
     withdrawal_percentage: Optional[float] = Field(None, ge=0, le=100, description="Fixed withdrawal % per period")
+    rolling_periods: Optional[int] = Field(None, ge=2, le=5, description="Rolling average periods")
+    smoothing_rate: Optional[float] = Field(None, ge=0.5, le=0.9, description="Smoothing rate for geometric rule")
+    life_expectancy_model: Optional[str] = Field(None, description="single or uniform")
+    current_age: Optional[int] = Field(None, ge=30, le=95, description="Current age for life expectancy")
+
+    # Output customization
+    percentiles: List[float] = Field(default_factory=lambda: [0.10, 0.25, 0.50, 0.75, 0.90], description="Percentile intervals")
+    return_intervals: List[float] = Field(default_factory=lambda: [0.00, 0.025, 0.05, 0.075, 0.10, 0.125], description="Return thresholds")
+
+    # Tax and investment horizon (US only - currently placeholders)
+    tax_enabled: bool = Field(False, description="Tax calculations (experimental)")
+    investment_horizon: int = Field(1, ge=1, le=2, description="1=Simulated Period, 2=Perpetual")
+
+    # Random seed
     seed: int = Field(42, description="Random seed for reproducibility")
 
 
@@ -76,6 +116,8 @@ class MonteCarloResponse(BaseModel):
     performance_summary: dict
     balance_percentiles: dict
     loss_probabilities: dict
+    expected_returns: Optional[dict] = None
+    simulated_assets: Optional[dict] = None
 
 
 # ── Health ───────────────────────────────────────────────────────────────────
@@ -152,17 +194,19 @@ def simulate(req: MonteCarloRequest):
         cashflow = None
         if req.cashflow_type is not None and req.cashflow_type != 0:
             freq = req.cashflow_frequency or "annual"
-            if req.cashflow_type == 3 and req.withdrawal_percentage is not None:
-                cashflow = CashFlowConfig(
-                    adjustment_type=3,
-                    withdrawal_percentage=req.withdrawal_percentage / 100.0,
-                )
-            elif req.cashflow_amount is not None:
-                cashflow = CashFlowConfig(
-                    adjustment_type=req.cashflow_type,
-                    amount=req.cashflow_amount,
-                    frequency=freq,
-                )
+            cashflow = CashFlowConfig(
+                adjustment_type=req.cashflow_type,
+                amount=req.cashflow_amount or 0.0,
+                growth_rate=0.0,
+                frequency=freq,
+                inflation_adjusted=req.inflation_adjusted,
+                inflation_mean=req.inflation_mean,
+                withdrawal_percentage=req.withdrawal_percentage or 4.0,
+                rolling_periods=req.rolling_periods or 3,
+                smoothing_rate=req.smoothing_rate or 0.75,
+                life_expectancy_model=req.life_expectancy_model or "single",
+                current_age=req.current_age or 30,
+            )
 
         config = MonteCarloConfig(
             initial_balance=req.initial_balance,
@@ -170,10 +214,31 @@ def simulate(req: MonteCarloRequest):
             simulations=req.simulations,
             assets=assets,
             model=req.model,
+            time_series_model=req.time_series_model,
+            distribution_type=req.distribution_type,
+            degrees_of_freedom=req.degrees_of_freedom,
             bootstrap_model=req.bootstrap_model,
-            seed=req.seed,
+            bootstrap_min_years=req.bootstrap_min_years,
+            bootstrap_max_years=req.bootstrap_max_years,
+            circular_bootstrap=req.circular_bootstrap,
+            use_full_history=req.use_full_history,
+            start_year=req.start_year,
+            end_year=req.end_year,
+            custom_means=np.array(req.custom_means) if req.custom_means else None,
+            custom_stds=np.array(req.custom_stds) if req.custom_stds else None,
+            custom_correlation=np.array(req.custom_correlation) if req.custom_correlation else None,
+            risk_free_rate=req.risk_free_rate,
+            sequence_stress_test=req.sequence_stress_test,
+            use_historical_volatility=req.historical_volatility,
+            use_historical_correlations=req.historical_correlations,
+            rebalance_frequency=req.rebalance_frequency,
+            inflation_model=req.inflation_model,
+            inflation_mean=req.inflation_mean,
+            inflation_volatility=req.inflation_volatility,
             inflation_adjusted=req.inflation_adjusted,
             cashflow=cashflow,
+            percentiles=req.percentiles,
+            seed=req.seed,
         )
         sim = MonteCarlo(config)
         results = sim.run()
@@ -211,6 +276,24 @@ def simulate(req: MonteCarloRequest):
                 row[yr] = str(results.loss_probabilities.loc[thr, yr])
             loss_out[thr] = row
 
+        # expected_returns: index = percentile, columns = years
+        expected_out = {}
+        if results.expected_returns is not None:
+            for pct in results.expected_returns.index:
+                row = {}
+                for yr in results.expected_returns.columns:
+                    row[yr] = str(results.expected_returns.loc[pct, yr])
+                expected_out[pct] = row
+
+        # simulated_assets: index = asset name, columns = correlations + stats
+        sim_assets_out = {}
+        if results.simulated_assets is not None:
+            for asset in results.simulated_assets.index:
+                row = {}
+                for col in results.simulated_assets.columns:
+                    row[col] = str(results.simulated_assets.loc[asset, col])
+                sim_assets_out[asset] = row
+
         return MonteCarloResponse(
             n_simulations=results.n_sims,
             n_years=results.n_years,
@@ -223,6 +306,8 @@ def simulate(req: MonteCarloRequest):
             performance_summary=perf_out,
             balance_percentiles=bal_out,
             loss_probabilities=loss_out,
+            expected_returns=expected_out,
+            simulated_assets=sim_assets_out,
         )
     except HTTPException:
         raise

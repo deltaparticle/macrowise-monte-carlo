@@ -3,300 +3,682 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Macrowise — Indian Market Monte Carlo Simulator</title>
+  <title>Macrowise Monte Carlo — PortfolioVisualizer for Indian Markets</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
     .rupee::before { content: '\20B9'; }
-    .section-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
-    .result-card { background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%); color: white; border-radius: 12px; padding: 1.5rem; }
-    .asset-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
-    .btn-primary { background: #1e40af; color: white; padding: 0.5rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer; }
-    .btn-primary:hover { background: #1d3fa8; }
-    .btn-primary:disabled { background: #6b7280; cursor: not-allowed; }
-    .input-field { border: 1px solid #d1d5db; border-radius: 6px; padding: 0.4rem 0.75rem; width: 100%; }
-    .input-field:focus { outline: 2px solid #1e40af; border-color: transparent; }
-    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-    .badge-pass { background: #d1fae5; color: #065f46; }
-    .badge-fail { background: #fee2e2; color: #991b1b; }
-    .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #e5e7eb; border-top-color: #1e40af; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .section-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+    .section-title { font-size: 0.95rem; font-weight: 700; color: #1e3a5f; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; }
+    .form-row { display: flex; gap: 1rem; margin-bottom: 0.75rem; align-items: flex-start; }
+    .form-row label { flex: 0 0 200px; font-size: 0.8rem; font-weight: 600; color: #374151; padding-top: 0.35rem; }
+    .form-row .field { flex: 1; }
+    .form-row .field > * { width: 100%; }
+    .input-field { border: 1px solid #d1d5db; border-radius: 4px; padding: 0.35rem 0.6rem; font-size: 0.85rem; }
+    .input-field:focus { outline: 2px solid #2563eb; border-color: transparent; }
+    .input-field[type="number"] { -moz-appearance: textfield; }
+    .input-field[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .btn-primary { background: #2563eb; color: white; padding: 0.5rem 1.5rem; border-radius: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer; border: none; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+    .btn-secondary { background: #f3f4f6; color: #374151; padding: 0.3rem 0.75rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; border: 1px solid #d1d5db; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+    .badge-equity { background: #dbeafe; color: #1e40af; }
+    .badge-bond { background: #d1fae5; color: #065f46; }
+    .badge-commodity { background: #fef3c7; color: #92400e; }
+    .badge-etf { background: #ede9fe; color: #5b21b6; }
+    .badge-liquid { background: #f3e8ff; color: #6b21a8; }
+    .badge-balanced { background: #fce7f3; color: #9d174d; }
+    .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .fade-in { animation: fadeIn 0.4s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .weight-bar { height: 6px; background: #1e40af; border-radius: 3px; transition: width 0.3s; }
-    .tab-btn { padding: 0.5rem 1rem; border-bottom: 2px solid transparent; cursor: pointer; font-weight: 600; color: #6b7280; }
-    .tab-btn.active { color: #1e40af; border-bottom-color: #1e40af; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-    th { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 2px solid #e5e7eb; color: #374151; font-weight: 600; }
-    td { padding: 0.4rem 0.75rem; border-bottom: 1px solid #f3f4f6; }
-    .nav-link { color: #374151; text-decoration: none; padding: 0.25rem 0; border-bottom: 2px solid transparent; }
-    .nav-link:hover, .nav-link.active { color: #1e40af; border-bottom-color: #1e40af; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 2px solid #e5e7eb; color: #374151; font-weight: 600; background: #f9fafb; }
+    td { padding: 0.35rem 0.6rem; border-bottom: 1px solid #f3f4f6; }
+    .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
+    .asset-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; padding: 0.5rem; background: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; }
+    .asset-stat-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.25rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; padding: 0 0.5rem; }
+    .weight-bar { height: 4px; background: #2563eb; border-radius: 2px; transition: width 0.3s; }
+    .nav-link { color: #4b5563; text-decoration: none; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500; }
+    .nav-link:hover, .nav-link.active { color: #2563eb; background: #eff6ff; }
+    .result-stat { text-align: center; padding: 1rem; border-radius: 8px; }
+    .result-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.25rem; }
+    .result-stat-value { font-size: 1.5rem; font-weight: 700; color: #111827; }
+    .collapsible-header { cursor: pointer; user-select: none; }
+    .collapsible-header:hover { background: #f9fafb; }
+    .collapsible-body { overflow: hidden; transition: max-height 0.3s ease; }
+    .collapsible-body.collapsed { max-height: 0; }
+    select.input-field { appearance: auto; }
+    .tooltip-icon { display: inline-block; width: 14px; height: 14px; background: #9ca3af; color: white; border-radius: 50%; font-size: 10px; text-align: center; line-height: 14px; cursor: help; margin-left: 4px; }
+    .tooltip-icon:hover::after { content: attr(data-tip); position: absolute; background: #1f2937; color: white; padding: 0.5rem; border-radius: 4px; font-size: 0.75rem; max-width: 250px; z-index: 100; }
+    .tab-btn { padding: 0.5rem 1rem; border: none; background: none; cursor: pointer; font-weight: 600; color: #6b7280; border-bottom: 2px solid transparent; }
+    .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .pv-section { border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 1rem; overflow: hidden; }
+    .pv-header { background: #f8fafc; padding: 0.6rem 1rem; font-weight: 600; font-size: 0.85rem; color: #1e3a5f; border-bottom: 1px solid #e5e7eb; }
+    .pv-body { padding: 0.75rem 1rem; }
+    .pct-input-wrap { position: relative; }
+    .pct-input-wrap::after { content: '%'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #6b7280; font-size: 0.8rem; pointer-events: none; }
+    .pct-input-wrap input { padding-right: 24px; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
 <!-- Navbar -->
 <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
-  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-    <div>
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-4">
       <span class="text-xl font-bold text-slate-800">Macrowise</span>
-      <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Monte Carlo</span>
+      <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Monte Carlo</span>
     </div>
-    <div class="flex gap-6 text-sm">
-      <a href="#" class="nav-link active" onclick="showTab('simulate')">Simulate</a>
-      <a href="#" class="nav-link" onclick="showTab('results')" id="resultsTab" style="display:none">Results</a>
-      <a href="#" class="nav-link" onclick="showTab('assets')">Assets</a>
+    <div class="flex gap-1">
+      <button class="nav-link active" onclick="showTab('simulate')">Simulate</button>
+      <button class="nav-link" onclick="showTab('results')" id="resultsTab" style="display:none">Results</button>
+      <button class="nav-link" onclick="showTab('assets')">Assets</button>
     </div>
   </div>
 </nav>
 
-<div class="max-w-6xl mx-auto px-4 py-8">
+<div class="max-w-7xl mx-auto px-4 py-6">
 
   <!-- ══════════════════════════════════════ SIMULATE TAB ══════════════════════════════════════ -->
   <div id="tab-simulate">
 
-    <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-slate-800">Monte Carlo Portfolio Simulator</h1>
-      <p class="text-slate-500 mt-2">Indian markets · Historical bootstrap · PortfolioVisualizer methodology</p>
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-slate-800">Monte Carlo Portfolio Simulation</h1>
+      <p class="text-slate-500 text-sm mt-1">Indian market data · NSE TRI · AMFI NAV · PortfolioVisualizer methodology</p>
     </div>
+
+    <form id="simForm" onsubmit="return false;">
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <!-- LEFT: Config Form -->
-      <div class="lg:col-span-2">
+      <!-- LEFT: Form -->
+      <div class="lg:col-span-2 space-y-4">
 
-        <!-- Portfolio Allocation -->
-        <div class="section-card">
-          <h2 class="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
-            <span class="w-6 h-6 bg-blue-600 text-white rounded text-center text-sm leading-6">1</span>
-            Portfolio Allocation
-          </h2>
-          <div id="assetRows" class="mb-4"></div>
-          <div class="flex gap-2 mb-3">
-            <button onclick="addAssetRow()" class="text-sm text-blue-600 font-semibold hover:underline">+ Add Asset</button>
-            <span class="text-slate-300">|</span>
-            <button onclick="loadPreset('60_40')" class="text-sm text-slate-600 hover:underline">60/40</button>
-            <button onclick="loadPreset('80_20')" class="text-sm text-slate-600 hover:underline">80/20</button>
-            <button onclick="loadPreset('100_equity')" class="text-sm text-slate-600 hover:underline">100% Equity</button>
-            <button onclick="loadPreset('3_fund')" class="text-sm text-slate-600 hover:underline">3-Fund</button>
-          </div>
-          <div id="weightError" class="text-red-600 text-sm hidden mb-2"></div>
-          <div id="weightBar" class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-            <div id="weightBarFill" class="weight-bar" style="width:0%"></div>
-          </div>
-          <p id="weightSum" class="text-xs text-slate-400 mt-1">Total: 0%</p>
-        </div>
-
-        <!-- Simulation Settings -->
-        <div class="section-card">
-          <h2 class="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
-            <span class="w-6 h-6 bg-blue-600 text-white rounded text-center text-sm leading-6">2</span>
-            Simulation Settings
-          </h2>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Initial Amount (₹)</label>
-              <input type="number" id="initialBalance" value="1000000" class="input-field" min="1000">
+        <!-- ═══ SECTION 1: Portfolio ═══ -->
+        <div class="pv-section">
+          <div class="pv-header">Portfolio Allocation</div>
+          <div class="pv-body">
+            <div class="form-row">
+              <label>Portfolio Type</label>
+              <div class="field">
+                <select id="portfolioType" class="input-field" onchange="switchPortfolioType()">
+                  <option value="asset">Asset Classes</option>
+                  <option value="ticker">Tickers</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Years</label>
-              <input type="number" id="years" value="30" class="input-field" min="1" max="75">
+            <div class="form-row">
+              <label>Initial Amount (₹)</label>
+              <div class="field">
+                <input type="number" id="initialBalance" value="1000000" class="input-field" min="1000" step="10000">
+              </div>
             </div>
-            <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Simulations</label>
-              <input type="number" id="simulations" value="1000" class="input-field" min="10" max="10000" step="10">
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Seed</label>
-              <input type="number" id="seed" value="42" class="input-field">
-            </div>
-          </div>
-        </div>
-
-        <!-- Model Settings -->
-        <div class="section-card">
-          <h2 class="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
-            <span class="w-6 h-6 bg-blue-600 text-white rounded text-center text-sm leading-6">3</span>
-            Model Settings
-          </h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Simulation Model</label>
-              <select id="model" class="input-field">
-                <option value="1" selected>Historical Bootstrap</option>
-                <option value="2">Statistical</option>
-                <option value="3">Parameterized</option>
-                <option value="4">Forecasted</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Bootstrap Type</label>
-              <select id="bootstrapModel" class="input-field">
-                <option value="0">Single Month</option>
-                <option value="1" selected>Single Year</option>
-                <option value="2">Block of Years</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Rebalancing</label>
-              <select id="rebalanceFreq" class="input-field">
-                <option value="0">None</option>
-                <option value="1" selected>Annual</option>
-                <option value="2">Semi-Annual</option>
-                <option value="3">Quarterly</option>
-                <option value="4">Monthly</option>
-              </select>
-            </div>
-            <div class="flex items-center pt-5 gap-3">
-              <input type="checkbox" id="inflationAdjusted" class="w-4 h-4">
-              <label for="inflationAdjusted" class="text-sm text-slate-600">Inflation-adjusted returns</label>
+            <div class="form-row">
+              <label>Asset Allocation</label>
+              <div class="field">
+                <div id="assetRows"></div>
+                <div class="flex gap-2 mt-2 flex-wrap">
+                  <button type="button" onclick="addAssetRow()" class="btn-secondary text-xs">+ Add Asset</button>
+                  <button type="button" onclick="equalWeightAllocs()" class="btn-secondary text-xs">Equal Weight</button>
+                  <button type="button" onclick="normalizeAllocs()" class="btn-secondary text-xs">Normalize</button>
+                  <button type="button" onclick="clearAllocs()" class="btn-secondary text-xs">Clear All</button>
+                </div>
+                <div class="flex gap-1 mt-1 flex-wrap">
+                  <button type="button" onclick="loadPreset('60_40')" class="text-xs text-blue-600 hover:underline">60/40</button>
+                  <button type="button" onclick="loadPreset('80_20')" class="text-xs text-blue-600 hover:underline">80/20</button>
+                  <button type="button" onclick="loadPreset('100_equity')" class="text-xs text-blue-600 hover:underline">100% Equity</button>
+                  <button type="button" onclick="loadPreset('all_seasons')" class="text-xs text-blue-600 hover:underline">All Seasons</button>
+                  <button type="button" onclick="loadPreset('core_four')" class="text-xs text-blue-600 hover:underline">Core Four</button>
+                </div>
+                <div class="mt-2">
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1 h-1.5 bg-gray-200 rounded-full"><div id="weightBarFill" class="h-full rounded-full transition-all" style="width:0%;background:#6b7280"></div></div>
+                    <span id="weightSum" class="text-xs text-slate-400 font-medium">0%</span>
+                  </div>
+                  <p id="weightError" class="text-red-600 text-xs mt-1 hidden"></p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Cashflow -->
-        <div class="section-card">
-          <h2 class="text-base font-bold text-slate-700 mb-4 flex items-center gap-2">
-            <span class="w-6 h-6 bg-blue-600 text-white rounded text-center text-sm leading-6">4</span>
-            Cash Flow <span class="text-slate-400 font-normal">(optional)</span>
-          </h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Type</label>
-              <select id="cashflowType" class="input-field" onchange="toggleCashflow()">
-                <option value="0" selected>None</option>
-                <option value="1">SIP / Contribution</option>
-                <option value="2">Withdrawal</option>
-                <option value="3">Fixed % Withdrawal</option>
-              </select>
+        <!-- ═══ SECTION 2: Cashflows ═══ -->
+        <div class="pv-section">
+          <div class="pv-header" onclick="toggleSection('cashflowBody')" style="cursor:pointer">
+            <span id="cashflowToggle">▶ </span> Cashflows
+          </div>
+          <div class="pv-body" id="cashflowBody">
+            <div class="form-row">
+              <label>Cashflows</label>
+              <div class="field">
+                <select id="adjustmentType" class="input-field" onchange="toggleCashflow()">
+                  <option value="0">No contributions or withdrawals</option>
+                  <option value="1">Contribute fixed amount periodically</option>
+                  <option value="2">Withdraw fixed amount periodically</option>
+                  <option value="3">Withdraw fixed percentage periodically</option>
+                  <option value="5">Rolling average spending rule</option>
+                  <option value="6">Geometric spending rule</option>
+                  <option value="4">Withdraw based on life expectancy</option>
+                </select>
+              </div>
             </div>
-            <div id="cfAmountField" style="display:none">
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Amount (₹/period)</label>
-              <input type="number" id="cashflowAmount" value="50000" class="input-field" min="0">
+            <div id="cfAmountWrap" style="display:none">
+              <div class="form-row">
+                <label id="cfAmountLabel">Contribution Amount (₹)</label>
+                <div class="field">
+                  <input type="number" id="adjustmentAmount" value="45000" class="input-field" min="0" step="1000">
+                </div>
+              </div>
             </div>
-            <div id="cfPctField" style="display:none">
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Withdrawal %</label>
-              <input type="number" id="withdrawalPct" value="4" class="input-field" min="0" max="50" step="0.5">
+            <div id="cfPctWrap" style="display:none">
+              <div class="form-row">
+                <label>Withdrawal Percentage</label>
+                <div class="field">
+                  <input type="number" id="adjustmentPercentage" value="4.0" class="input-field pct-input-wrap" min="0" max="100" step="0.1">
+                </div>
+              </div>
             </div>
-            <div id="cfFreqField" style="display:none">
-              <label class="text-xs font-semibold text-slate-600 block mb-1">Frequency</label>
-              <select id="cashflowFreq" class="input-field">
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="annual" selected>Annual</option>
-              </select>
+            <div id="cfFreqWrap" style="display:none">
+              <div class="form-row">
+                <label id="cfFreqLabel">Contribution Frequency</label>
+                <div class="field">
+                  <select id="frequency" class="input-field">
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="annual" selected>Annually</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div id="cfInflationWrap" style="display:none">
+              <div class="form-row">
+                <label>Inflation Adjusted</label>
+                <div class="field">
+                  <select id="cashflowInflationAdjusted" class="input-field">
+                    <option value="true" selected>Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div id="cfRollingWrap" style="display:none">
+              <div class="form-row">
+                <label>Rolling Average Periods</label>
+                <div class="field">
+                  <select id="rollingAveragePeriods" class="input-field">
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div id="cfSmoothingWrap" style="display:none">
+              <div class="form-row">
+                <label>Smoothing Rate</label>
+                <div class="field">
+                  <select id="smoothingRate" class="input-field">
+                    <option value="0.50">50%</option><option value="0.55">55%</option><option value="0.60">60%</option>
+                    <option value="0.65">65%</option><option value="0.70">70%</option><option value="0.75" selected>75%</option>
+                    <option value="0.80">80%</option><option value="0.85">85%</option><option value="0.90">90%</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div id="cfLifeWrap" style="display:none">
+              <div class="form-row">
+                <label>Life Expectancy Model</label>
+                <div class="field">
+                  <select id="lifeExpectancyModel" class="input-field">
+                    <option value="single" selected>Single Life Expectancy</option>
+                    <option value="uniform">Uniform Life Expectancy (70+)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div id="cfAgeWrap" style="display:none">
+              <div class="form-row">
+                <label>Current Age</label>
+                <div class="field">
+                  <select id="currentAge" class="input-field">
+                    <!-- JS will populate -->
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div id="cfGrowthWrap" style="display:none">
+              <div class="form-row">
+                <label>Annual Growth Rate</label>
+                <div class="field">
+                  <input type="number" id="cashflowGrowth" value="0" class="input-field pct-input-wrap" min="0" max="100" step="0.5">
+                  <span class="text-xs text-slate-400 ml-1">% per year (e.g., SIP step-up)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SECTION 3: Simulation Parameters ═══ -->
+        <div class="pv-section">
+          <div class="pv-header">Simulation Parameters</div>
+          <div class="pv-body">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label class="text-xs font-semibold text-slate-600">Simulation Period (yrs)</label>
+                <select id="years" class="input-field">
+                  <option value="5">5</option><option value="10">10</option><option value="15">15</option>
+                  <option value="20">20</option><option value="25">25</option><option value="30" selected>30</option>
+                  <option value="35">35</option><option value="40">40</option><option value="45">45</option>
+                  <option value="50">50</option><option value="55">55</option><option value="60">60</option>
+                  <option value="65">65</option><option value="70">70</option><option value="75">75</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-slate-600">Simulations</label>
+                <input type="number" id="simulations" value="1000" class="input-field" min="100" max="10000" step="100">
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-slate-600">Random Seed</label>
+                <input type="number" id="seed" value="42" class="input-field" min="0">
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-slate-600">Investment Horizon</label>
+                <select id="investmentHorizon" class="input-field">
+                  <option value="1" selected>Simulated Period</option>
+                  <option value="2">Perpetual</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SECTION 4: Simulation Model ═══ -->
+        <div class="pv-section">
+          <div class="pv-header" onclick="toggleSection('modelBody')" style="cursor:pointer">
+            <span id="modelToggle">▶ </span> Simulation Model Configuration
+          </div>
+          <div class="pv-body" id="modelBody">
+            <div class="form-row">
+              <label>Simulation Model</label>
+              <div class="field">
+                <select id="simulationModel" class="input-field" onchange="toggleModel()">
+                  <option value="1" selected>Historical Returns</option>
+                  <option value="4">Forecasted Returns</option>
+                  <option value="2">Statistical Returns</option>
+                  <option value="3">Parameterized Returns</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Historical Options -->
+            <div id="histOptions">
+              <div class="form-row">
+                <label>Bootstrap Model</label>
+                <div class="field">
+                  <select id="bootstrapModel" class="input-field" onchange="toggleBootstrap()">
+                    <option value="0">Single Month</option>
+                    <option value="1" selected>Single Year</option>
+                    <option value="2">Block of Years</option>
+                  </select>
+                </div>
+              </div>
+              <div id="blockOptions" style="display:none">
+                <div class="form-row">
+                  <label>Block Min. Years</label>
+                  <div class="field"><input type="number" id="bootstrapMinYears" value="1" class="input-field" min="1" max="30"></div>
+                </div>
+                <div class="form-row">
+                  <label>Block Max. Years</label>
+                  <div class="field"><input type="number" id="bootstrapMaxYears" value="20" class="input-field" min="1" max="30"></div>
+                </div>
+                <div class="form-row">
+                  <label>Circular Bootstrapping</label>
+                  <div class="field">
+                    <select id="circularBootstrap" class="input-field">
+                      <option value="false">No</option>
+                      <option value="true" selected>Yes</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Use Full History</label>
+                <div class="field">
+                  <select id="fullHistory" class="input-field">
+                    <option value="true" selected>Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Start Year</label>
+                <div class="field">
+                  <select id="startYear" class="input-field">
+                    <option value="">All</option>
+                    <option value="2000">2000</option><option value="2005">2005</option>
+                    <option value="2010">2010</option><option value="2013">2013</option>
+                    <option value="2015">2015</option><option value="2018">2018</option>
+                    <option value="2020">2020</option><option value="2022">2022</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <label>End Year</label>
+                <div class="field">
+                  <select id="endYear" class="input-field">
+                    <option value="">Latest</option>
+                    <option value="2020">2020</option><option value="2022">2022</option>
+                    <option value="2024">2024</option><option value="2025">2025</option>
+                    <option value="2026" selected>2026</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Parameterized / Forecasted Options -->
+            <div id="paramOptions" style="display:none">
+              <div class="form-row">
+                <label>Distribution</label>
+                <div class="field">
+                  <select id="distribution" class="input-field" onchange="toggleDistribution()">
+                    <option value="1" selected>Normal Distribution</option>
+                    <option value="2">Fat-Tailed Distribution</option>
+                  </select>
+                </div>
+              </div>
+              <div id="dofOptions" style="display:none">
+                <div class="form-row">
+                  <label>Degrees of Freedom</label>
+                  <div class="field">
+                    <select id="dof" class="input-field">
+                      <option value="5">5</option><option value="10">10</option><option value="15">15</option>
+                      <option value="20">20</option><option value="25">25</option><option value="30" selected>30</option>
+                      <option value="35">35</option><option value="40">40</option><option value="45">45</option><option value="50">50</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Expected Return</label>
+                <div class="field"><input type="number" id="meanReturn" class="input-field pct-input-wrap" value="7.0" step="0.1"></div>
+              </div>
+              <div class="form-row">
+                <label>Volatility</label>
+                <div class="field"><input type="number" id="volatility" class="input-field pct-input-wrap" value="12.0" step="0.1"></div>
+              </div>
+            </div>
+
+            <!-- Statistical / Forecasted Options -->
+            <div id="statOptions" style="display:none">
+              <div class="form-row">
+                <label>Use Historical Volatility</label>
+                <div class="field">
+                  <select id="historicalVolatility" class="input-field">
+                    <option value="true" selected>Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Use Historical Correlations</label>
+                <div class="field">
+                  <select id="historicalCorrelations" class="input-field">
+                    <option value="true" selected>Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Common Options -->
+            <div class="form-row">
+              <label>Sequence of Returns Risk</label>
+              <div class="field">
+                <select id="sequenceStressTest" class="input-field">
+                  <option value="0" selected>No Adjustments</option>
+                  <option value="1">Worst 1 Year First</option><option value="2">Worst 2 Years First</option>
+                  <option value="3">Worst 3 Years First</option><option value="4">Worst 4 Years First</option>
+                  <option value="5">Worst 5 Years First</option><option value="6">Worst 6 Years First</option>
+                  <option value="7">Worst 7 Years First</option><option value="8">Worst 8 Years First</option>
+                  <option value="9">Worst 9 Years First</option><option value="10">Worst 10 Years First</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SECTION 5: Inflation ═══ -->
+        <div class="pv-section">
+          <div class="pv-header" onclick="toggleSection('inflationBody')" style="cursor:pointer">
+            <span id="inflationToggle">▶ </span> Inflation Model
+          </div>
+          <div class="pv-body" id="inflationBody">
+            <div class="form-row">
+              <label>Inflation Model</label>
+              <div class="field">
+                <select id="inflationModel" class="input-field" onchange="toggleInflation()">
+                  <option value="1" selected>Historical Inflation</option>
+                  <option value="2">Parameterized Inflation</option>
+                </select>
+              </div>
+            </div>
+            <div id="paramInflation" style="display:none">
+              <div class="form-row">
+                <label>Inflation Mean</label>
+                <div class="field"><input type="number" id="inflationMean" class="input-field pct-input-wrap" value="4.0" step="0.1"></div>
+              </div>
+              <div class="form-row">
+                <label>Inflation Volatility</label>
+                <div class="field"><input type="number" id="inflationVolatility" class="input-field pct-input-wrap" value="3.0" step="0.1"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SECTION 6: Rebalancing ═══ -->
+        <div class="pv-section">
+          <div class="pv-header" onclick="toggleSection('rebalanceBody')" style="cursor:pointer">
+            <span id="rebalanceToggle">▶ </span> Rebalancing
+          </div>
+          <div class="pv-body" id="rebalanceBody">
+            <div class="form-row">
+              <label>Rebalancing Frequency</label>
+              <div class="field">
+                <select id="rebalanceType" class="input-field">
+                  <option value="0">No rebalancing</option>
+                  <option value="1" selected>Rebalance annually</option>
+                  <option value="2">Rebalance semi-annually</option>
+                  <option value="3">Rebalance quarterly</option>
+                  <option value="4">Rebalance monthly</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SECTION 7: Advanced (Intervals, Tax, etc.) ═══ -->
+        <div class="pv-section">
+          <div class="pv-header" onclick="toggleSection('advancedBody')" style="cursor:pointer">
+            <span id="advancedToggle">▶ </span> Advanced Options
+          </div>
+          <div class="pv-body" id="advancedBody">
+            <div class="form-row">
+              <label>Percentile Intervals</label>
+              <div class="field">
+                <div class="flex gap-2 items-center">
+                  <input type="text" id="percentileList" class="input-field" value="10, 25, 50, 75, 90">
+                  <span class="text-xs text-slate-400">th percentile</span>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>Return Intervals</label>
+              <div class="field">
+                <div class="flex gap-2 items-center">
+                  <input type="text" id="returnList" class="input-field" value="0, 2.5, 5, 7.5, 10, 12.5">
+                  <span class="text-xs text-slate-400">% thresholds</span>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>Risk-Free Rate</label>
+              <div class="field">
+                <input type="number" id="riskFreeRate" class="input-field pct-input-wrap" value="4.83" step="0.01">
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Run Button -->
-        <div class="text-center">
-          <button onclick="runSimulation()" id="runBtn" class="btn-primary text-base px-10 py-3">
-            Run Simulation
+        <div class="text-center py-4">
+          <button type="button" onclick="runSimulation()" id="runBtn" class="btn-primary text-sm px-8 py-2.5">
+            Run Monte Carlo Simulation
           </button>
         </div>
 
       </div>
 
-      <!-- RIGHT: Quick Summary / Results Preview -->
+      <!-- RIGHT: Summary -->
       <div class="lg:col-span-1">
-        <div class="section-card sticky top-24">
-          <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-4">Portfolio Summary</h3>
+        <div class="section-card sticky top-20">
+          <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">Portfolio Summary</h3>
           <div id="portfolioSummary">
-            <p class="text-slate-400 text-sm italic">Configure your portfolio and run a simulation to see results.</p>
+            <p class="text-slate-400 text-sm italic">Configure your portfolio to see a summary.</p>
+          </div>
+          <hr class="my-3">
+          <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">Quick Reference</h3>
+          <div class="text-xs text-slate-400 space-y-1">
+            <p><b>Historical Bootstrap:</b> Samples actual historical monthly/yearly returns</p>
+            <p><b>Forecasted:</b> User-specified mean, std, and correlations</p>
+            <p><b>Statistical:</b> Bootstrap + custom mean/std/correlation</p>
+            <p><b>Parameterized:</b> Multivariate Normal or t-distribution</p>
           </div>
         </div>
       </div>
 
     </div>
+    </form>
   </div>
 
   <!-- ══════════════════════════════════════ RESULTS TAB ══════════════════════════════════════ -->
   <div id="tab-results" style="display:none">
 
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-slate-800">Simulation Results</h1>
-      <button onclick="showTab('simulate')" class="text-sm text-blue-600 font-semibold hover:underline">← Back to Form</button>
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800">Simulation Results</h1>
+        <p class="text-slate-500 text-sm mt-1" id="resultMeta"></p>
+      </div>
+      <button onclick="showTab('simulate')" class="btn-secondary text-sm">← Back to Form</button>
     </div>
 
     <!-- Key Metrics -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div class="result-card text-center">
-        <div class="text-xs text-blue-200 uppercase tracking-wide">Median CAGR</div>
-        <div class="text-3xl font-bold mt-1" id="res-cagr">—</div>
+      <div class="result-stat" style="background:#eff6ff">
+        <div class="result-stat-label">Median CAGR</div>
+        <div class="result-stat-value" id="res-cagr">—</div>
       </div>
-      <div class="result-card text-center">
-        <div class="text-xs text-blue-200 uppercase tracking-wide">Success Rate</div>
-        <div class="text-3xl font-bold mt-1" id="res-sr">—</div>
+      <div class="result-stat" style="background:#f0fdf4">
+        <div class="result-stat-label">Success Rate</div>
+        <div class="result-stat-value" id="res-sr">—</div>
       </div>
-      <div class="result-card text-center">
-        <div class="text-xs text-blue-200 uppercase tracking-wide">Median Final</div>
-        <div class="text-3xl font-bold mt-1" id="res-final">—</div>
+      <div class="result-stat" style="background:#fffbeb">
+        <div class="result-stat-label">Median Final Balance</div>
+        <div class="result-stat-value" id="res-final">—</div>
       </div>
-      <div class="result-card text-center">
-        <div class="text-xs text-blue-200 uppercase tracking-wide">SWR</div>
-        <div class="text-3xl font-bold mt-1" id="res-swr">—</div>
+      <div class="result-stat" style="background:#fef2f2">
+        <div class="result-stat-label">Safe Withdrawal Rate</div>
+        <div class="result-stat-value" id="res-swr">—</div>
       </div>
     </div>
 
-    <!-- Performance Table -->
+    <!-- Performance Summary -->
     <div class="section-card mb-6">
-      <h3 class="text-base font-bold text-slate-700 mb-4">Performance Summary (Percentiles)</h3>
+      <h3 class="text-base font-bold text-slate-700 mb-3">Performance Summary</h3>
       <div class="overflow-x-auto">
-        <table id="perfTable">
-          <thead><tr><th>Statistic</th><th>p10</th><th>p25</th><th>p50</th><th>p75</th><th>p90</th></tr></thead>
+        <table>
+          <thead><tr><th>Statistic</th><th class="num-cell">10th</th><th class="num-cell">25th</th><th class="num-cell">50th</th><th class="num-cell">75th</th><th class="num-cell">90th</th></tr></thead>
           <tbody id="perfBody"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- Balance Percentile Chart -->
+    <!-- Portfolio Balance Chart -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       <div class="section-card">
-        <h3 class="text-base font-bold text-slate-700 mb-4">Portfolio Balance Growth</h3>
-        <canvas id="balanceChart" height="200"></canvas>
+        <h3 class="text-base font-bold text-slate-700 mb-3">Portfolio Balance Growth</h3>
+        <canvas id="balanceChart" height="220"></canvas>
       </div>
       <div class="section-card">
-        <h3 class="text-base font-bold text-slate-700 mb-4">Terminal Distribution</h3>
-        <canvas id="terminalChart" height="200"></canvas>
+        <h3 class="text-base font-bold text-slate-700 mb-3">Terminal Value Distribution</h3>
+        <canvas id="terminalChart" height="220"></canvas>
       </div>
     </div>
 
     <!-- Balance Percentiles Table -->
     <div class="section-card mb-6">
-      <h3 class="text-base font-bold text-slate-700 mb-4">Balance at Each Year</h3>
-      <div class="overflow-x-auto max-h-80 overflow-y-auto">
-        <table id="balanceTable">
-          <thead><tr><th>Year</th><th>p10</th><th>p25</th><th>p50</th><th>p75</th><th>p90</th></tr></thead>
+      <h3 class="text-base font-bold text-slate-700 mb-3">Portfolio Balance by Year</h3>
+      <div class="overflow-x-auto max-h-96 overflow-y-auto">
+        <table>
+          <thead><tr><th class="num-cell">Year</th><th class="num-cell">p10</th><th class="num-cell">p25</th><th class="num-cell">p50</th><th class="num-cell">p75</th><th class="num-cell">p90</th></tr></thead>
           <tbody id="balanceBody"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- Loss Probability -->
-    <div class="section-card">
-      <h3 class="text-base font-bold text-slate-700 mb-4">Probability of Loss</h3>
+    <!-- Simulated Assets -->
+    <div class="section-card mb-6" id="simAssetsSection">
+      <h3 class="text-base font-bold text-slate-700 mb-3">Simulated Assets — Correlations and Returns</h3>
       <div class="overflow-x-auto">
-        <table id="lossTable">
-          <thead><tr><th>Loss Threshold</th><th>1yr</th><th>3yr</th><th>5yr</th><th>10yr</th><th>15yr</th><th>20yr</th></tr></thead>
+        <table id="simAssetsTable">
+          <thead id="simAssetsHead"></thead>
+          <tbody id="simAssetsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Expected Annual Return -->
+    <div class="section-card mb-6" id="expReturnSection">
+      <h3 class="text-base font-bold text-slate-700 mb-3">Expected Annual Return</h3>
+      <div class="overflow-x-auto">
+        <table>
+          <thead><tr><th>Percentile</th><th class="num-cell">1 Yr</th><th class="num-cell">3 Yrs</th><th class="num-cell">5 Yrs</th><th class="num-cell">10 Yrs</th><th class="num-cell">15 Yrs</th><th class="num-cell">20 Yrs</th><th class="num-cell">25 Yrs</th><th class="num-cell">30 Yrs</th></tr></thead>
+          <tbody id="expReturnBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Loss Probabilities -->
+    <div class="section-card mb-6">
+      <h3 class="text-base font-bold text-slate-700 mb-3">Loss Probabilities</h3>
+      <div class="overflow-x-auto">
+        <table>
+          <thead><tr><th>Loss</th><th class="num-cell">1yr</th><th class="num-cell">3yr</th><th class="num-cell">5yr</th><th class="num-cell">10yr</th><th class="num-cell">15yr</th><th class="num-cell">20yr</th></tr></thead>
           <tbody id="lossBody"></tbody>
         </table>
       </div>
+      <p class="text-xs text-slate-400 mt-2">Loss is measured against the original portfolio balance.</p>
+    </div>
+
+    <!-- Footer notes -->
+    <div class="text-xs text-slate-400 space-y-1 mb-6">
+      <p>📊 Monte Carlo simulation uses random sampling to estimate a range of possible outcomes. Percentile results show where a given outcome falls in the distribution of all simulated paths.</p>
+      <p>📈 CAGR = Compound Annual Growth Rate. SWR = Safe Withdrawal Rate (maximum % of initial portfolio that can be withdrawn annually with inflation adjustment).</p>
+      <p>🇮🇳 Macrowise uses Indian market data: NSE Total Return Indices, AMFI mutual fund NAVs, RBI macro data. Returns are in INR.</p>
     </div>
 
   </div>
 
   <!-- ══════════════════════════════════════ ASSETS TAB ══════════════════════════════════════ -->
   <div id="tab-assets" style="display:none">
-    <h1 class="text-2xl font-bold text-slate-800 mb-6">Available Assets</h1>
+    <h1 class="text-2xl font-bold text-slate-800 mb-4">Available Assets</h1>
     <div class="section-card">
-      <div class="flex gap-2 mb-4 flex-wrap">
-        <button class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full" id="filterAll" onclick="filterAssets('all')">All</button>
-      </div>
+      <div class="flex gap-2 mb-4 flex-wrap" id="assetFilters"></div>
       <div class="overflow-x-auto">
         <table>
-          <thead><tr><th>Alias</th><th>Name</th><th>Category</th><th>Expected Return</th><th>Volatility</th></tr></thead>
+          <thead><tr><th>Alias</th><th>Name</th><th>Category</th><th>Expected Return</th><th>Volatility</th><th>Data Range</th></tr></thead>
           <tbody id="assetTableBody"></tbody>
         </table>
       </div>
@@ -307,100 +689,147 @@
 
 <!-- Loading Overlay -->
 <div id="loadingOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
-  <div class="bg-white rounded-xl p-8 text-center">
+  <div class="bg-white rounded-xl p-8 text-center min-w-[300px]">
     <div class="loading mx-auto mb-4"></div>
     <p class="text-slate-600 font-semibold" id="loadingMsg">Running simulation...</p>
   </div>
 </div>
 
 <script>
-let balanceChart = null;
-let terminalChart = null;
-let lastResult = null;
-let assetsData = [];
+// ═══════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════
+let balanceChart = null, terminalChart = null;
+let assetsData = [], lastResult = null;
 
-// ── Initialise ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
   loadAssets();
   loadPreset('60_40');
+  populateAgeDropdown();
+  toggleModel();
+  toggleBootstrap();
 });
 
-// ── Tab Navigation ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// Tab Navigation
+// ═══════════════════════════════════════════════════════════
 function showTab(tab) {
   ['simulate','results','assets'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-  if (tab === 'results') document.getElementById('resultsTab').style.display = '';
+  event.target.classList.add('active');
+  if (tab === 'results') {
+    document.getElementById('resultsTab').style.display = '';
+    if (lastResult) displayResults(lastResult);
+  }
 }
 
-// ── Load Assets ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// Collapsible Sections
+// ═══════════════════════════════════════════════════════════
+function toggleSection(id) {
+  const body = document.getElementById(id);
+  const toggleId = id.replace('Body', 'Toggle');
+  const toggle = document.getElementById(toggleId);
+  body.classList.toggle('collapsed');
+  toggle.textContent = body.classList.contains('collapsed') ? '▶ ' : '▼ ';
+}
+
+// Start sections collapsed for less-used ones
+window.addEventListener('DOMContentLoaded', () => {
+  ['cashflowBody','modelBody','inflationBody','rebalanceBody','advancedBody'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.add('collapsed'); }
+  });
+  ['cashflowToggle','modelToggle','inflationToggle','rebalanceToggle','advancedToggle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '▶ '; }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// Assets
+// ═══════════════════════════════════════════════════════════
 async function loadAssets() {
   try {
     const res = await fetch('/assets');
     const data = await res.json();
     assetsData = data.assets || [];
 
-    // Populate asset table
+    // Asset table
     const tbody = document.getElementById('assetTableBody');
+    tbody.innerHTML = '';
     assetsData.forEach(a => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">${a.alias}</code></td>
-        <td class="text-slate-700">${a.name}</td>
-        <td><span class="badge badge-pass">${a.category}</span></td>
-        <td>${a.default_mean ? (a.default_mean*100).toFixed(1)+'%' : '—'}</td>
-        <td>${a.default_std ? (a.default_std*100).toFixed(1)+'%' : '—'}</td>
-      `;
+      tr.innerHTML = `<td><code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">${a.alias}</code></td>
+        <td>${a.name}</td>
+        <td><span class="badge badge-${a.category.startsWith('indian_equity') ? 'equity' : a.category === 'indian_bond' ? 'bond' : a.category === 'commodities' ? 'commodity' : a.category === 'indian_etf' ? 'etf' : a.category === 'indian_liquid' ? 'liquid' : 'balanced'}">${a.category}</span></td>
+        <td>${a.default_mean ? (a.default_mean).toFixed(1)+'%' : '—'}</td>
+        <td>${a.default_std ? (a.default_std).toFixed(1)+'%' : '—'}</td>
+        <td>—</td>`;
       tbody.appendChild(tr);
     });
 
-    // Populate filter buttons
+    // Filter buttons
     const cats = [...new Set(assetsData.map(a => a.category))];
-    const filterDiv = document.getElementById('filterAll').parentElement;
+    const filterDiv = document.getElementById('assetFilters');
+    const allBtn = document.createElement('button');
+    allBtn.className = 'text-xs bg-blue-600 text-white px-3 py-1 rounded-full';
+    allBtn.textContent = 'All';
+    allBtn.onclick = () => filterAssets('all');
+    filterDiv.appendChild(allBtn);
     cats.forEach(cat => {
       const btn = document.createElement('button');
-      btn.className = 'text-xs bg-gray-100 text-slate-600 px-3 py-1 rounded-full';
-      btn.textContent = cat;
+      btn.className = 'text-xs bg-gray-100 text-slate-600 px-3 py-1 rounded-full hover:bg-gray-200';
+      btn.textContent = cat.replace('indian_', '');
       btn.onclick = () => filterAssets(cat);
       filterDiv.appendChild(btn);
     });
+  } catch(e) { console.error(e); }
+}
 
-  } catch(e) {
-    console.error('Failed to load assets', e);
+function filterAssets(cat) {
+  document.querySelectorAll('#assetTableBody tr').forEach(row => {
+    const badge = row.querySelector('.badge');
+    row.style.display = (!cat || cat === 'all' || badge.textContent === cat) ? '' : 'none';
+  });
+  document.querySelectorAll('#assetFilters button').forEach(b => {
+    const bCat = b.textContent;
+    b.className = bCat === cat.replace('indian_','') || (cat==='all' && b.textContent==='All')
+      ? 'text-xs bg-blue-600 text-white px-3 py-1 rounded-full'
+      : 'text-xs bg-gray-100 text-slate-600 px-3 py-1 rounded-full hover:bg-gray-200';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Portfolio Config
+// ═══════════════════════════════════════════════════════════
+function populateAgeDropdown() {
+  const sel = document.getElementById('currentAge');
+  for (let a = 30; a <= 95; a++) {
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    sel.appendChild(opt);
   }
 }
 
-function filterAssets(category) {
-  const rows = document.querySelectorAll('#assetTableBody tr');
-  rows.forEach(row => {
-    const cat = row.querySelector('.badge')?.textContent || '';
-    row.style.display = category === 'all' || cat === category ? '' : 'none';
-  });
-  document.querySelectorAll('#filterAll').parentElement.querySelectorAll('button').forEach(b => {
-    b.className = b.textContent === category || (category==='all' && b.id==='filterAll')
-      ? 'text-xs bg-blue-600 text-white px-3 py-1 rounded-full'
-      : 'text-xs bg-gray-100 text-slate-600 px-3 py-1 rounded-full';
-  });
-}
-
-// ── Portfolio Config ───────────────────────────────────────────────────────
-function addAssetRow(alias='', weight=0) {
+function addAssetRow(alias='', weight='') {
   const container = document.getElementById('assetRows');
   const div = document.createElement('div');
   div.className = 'asset-row';
-  const id = 'asset_' + Math.random().toString(36).slice(2);
+  const id = Math.random().toString(36).slice(2);
   div.innerHTML = `
-    <select class="input-field flex-1 asset-select" onchange="updateSummary()">${assetsData.map(a =>
-      `<option value="${a.alias}" ${a.alias===alias?'selected':''}>${a.alias} — ${a.name}</option>`
-    ).join('')}</select>
-    <input type="number" class="input-field w-20 weight-input" value="${weight}" min="0" max="100" step="1"
-           placeholder="%" oninput="updateWeights()">
+    <select class="input-field flex-1 asset-select" onchange="updateSummary()">
+      ${assetsData.map(a => `<option value="${a.alias}" ${a.alias===alias?'selected':''}>${a.alias} — ${a.name}</option>`).join('')}
+    </select>
+    <input type="number" class="input-field w-20 weight-input" value="${weight}" min="0" max="100" step="1" placeholder="%" oninput="updateWeights()">
     <span class="text-xs text-slate-400">%</span>
-    <button onclick="this.parentElement.remove(); updateWeights();" class="text-red-400 hover:text-red-600 font-bold text-lg w-6 h-6 flex items-center justify-center rounded hover:bg-red-50">×</button>
-  `;
+    <button type="button" onclick="this.parentElement.remove();updateWeights();updateSummary();" class="text-red-400 hover:text-red-600 font-bold text-lg w-6 h-6 flex items-center justify-center rounded hover:bg-red-50">&times;</button>`;
   container.appendChild(div);
-  if (alias) div.querySelector('.asset-select').value = alias;
   updateWeights();
 }
 
@@ -409,47 +838,31 @@ function updateWeights() {
   let total = 0;
   rows.forEach(i => { total += parseFloat(i.value) || 0; });
   const bar = document.getElementById('weightBarFill');
-  const sum = document.getElementById('weightSum');
+  const sumEl = document.getElementById('weightSum');
   const err = document.getElementById('weightError');
-  bar.style.width = Math.min(total, 100) + '%';
-  sum.textContent = `Total: ${total.toFixed(0)}%`;
-  if (Math.abs(total - 100) < 0.01) {
-    bar.style.background = '#059669';
-    err.classList.add('hidden');
-    sum.style.color = '#059669';
-  } else {
-    bar.style.background = total > 100 ? '#dc2626' : '#6b7280';
-    err.classList.toggle('hidden', total <= 100);
-    err.textContent = total > 100 ? `Over-allocated by ${(total-100).toFixed(0)}%` : '';
-    sum.style.color = total > 100 ? '#dc2626' : '#6b7280';
-  }
+  const pct = Math.min(total, 100);
+  bar.style.width = pct + '%';
+  bar.style.background = Math.abs(total - 100) < 0.01 ? '#16a34a' : total > 100 ? '#dc2626' : '#2563eb';
+  sumEl.textContent = total.toFixed(0) + '%';
+  sumEl.style.color = Math.abs(total - 100) < 0.01 ? '#16a34a' : total > 100 ? '#dc2626' : '#374151';
+  err.classList.toggle('hidden', Math.abs(total - 100) < 0.01);
+  err.textContent = Math.abs(total - 100) < 0.01 ? '' : `Allocations must sum to 100% (currently ${total.toFixed(0)}%)`;
   updateSummary();
 }
 
 function updateSummary() {
   const rows = document.querySelectorAll('.asset-row');
   const summary = document.getElementById('portfolioSummary');
-  if (rows.length === 0 || !assetsData.length) {
-    summary.innerHTML = '<p class="text-slate-400 text-sm italic">Add assets to see summary.</p>';
-    return;
-  }
+  if (!rows.length) { summary.innerHTML = '<p class="text-slate-400 text-sm italic">Add assets to see summary.</p>'; return; }
   let html = '';
   rows.forEach(row => {
     const alias = row.querySelector('.asset-select').value;
     const weight = parseFloat(row.querySelector('.weight-input').value) || 0;
     const info = assetsData.find(a => a.alias === alias);
     if (!info) return;
-    html += `
-      <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-        <div>
-          <div class="text-sm font-semibold text-slate-700">${alias}</div>
-          <div class="text-xs text-slate-400">${info.name}</div>
-        </div>
-        <div class="text-right">
-          <div class="text-sm font-bold text-slate-800">${weight}%</div>
-          <div class="text-xs text-slate-400">${info.category}</div>
-        </div>
-      </div>`;
+    html += `<div class="flex justify-between py-1.5 border-b border-gray-50 last:border-0">
+      <div><span class="text-sm font-medium text-slate-700">${alias}</span><br><span class="text-xs text-slate-400">${info.name}</span></div>
+      <div class="text-right"><span class="text-sm font-bold text-slate-800">${weight}%</span><br><span class="text-xs text-slate-400">Exp: ${info.default_mean ? info.default_mean.toFixed(1)+'%' : '—'}</span></div></div>`;
   });
   summary.innerHTML = html;
 }
@@ -458,40 +871,94 @@ const PRESETS = {
   '60_40': [['NIFTY_50', 60], ['SBI_GILT', 40]],
   '80_20': [['NIFTY_50', 80], ['SBI_GILT', 20]],
   '100_equity': [['NIFTY_50', 100]],
-  '3_fund': [['NIFTY_50', 50], ['SBI_GILT', 30], ['GOLD', 20]],
+  'all_seasons': [['NIFTY_50', 30], ['SBI_GILT', 40], ['GOLD', 15], ['GOLDBEES', 7.5], ['SBI_LIQUID', 7.5]],
+  'core_four': [['NIFTY_50', 48], ['SBI_GILT', 20], ['NIFTY_MIDCAP', 16], ['GOLD', 16]],
 };
 
 function loadPreset(name) {
   const container = document.getElementById('assetRows');
   container.innerHTML = '';
-  PRESETS[name].forEach(([alias, weight]) => addAssetRow(alias, weight));
+  (PRESETS[name] || []).forEach(([alias, weight]) => addAssetRow(alias, weight));
   updateWeights();
-  updateSummary();
 }
 
-// ── Cashflow Toggle ────────────────────────────────────────────────────────
-function toggleCashflow() {
-  const type = parseInt(document.getElementById('cashflowType').value);
-  const show = type !== 0;
-  document.getElementById('cfAmountField').style.display = (type === 1 || type === 2) ? '' : 'none';
-  document.getElementById('cfPctField').style.display = type === 3 ? '' : 'none';
-  document.getElementById('cfFreqField').style.display = show ? '' : 'none';
+function equalWeightAllocs() {
+  const rows = document.querySelectorAll('.weight-input');
+  if (!rows.length) return;
+  const each = (100 / rows.length).toFixed(1);
+  rows.forEach(r => r.value = each);
+  updateWeights();
 }
 
-// ── Run Simulation ────────────────────────────────────────────────────────
-async function runSimulation() {
-  // Validate weights
-  updateWeights();
+function normalizeAllocs() {
   const rows = document.querySelectorAll('.weight-input');
   let total = 0;
-  rows.forEach(i => { total += parseFloat(i.value) || 0; });
-  if (Math.abs(total - 100) > 0.01) {
-    document.getElementById('weightError').classList.remove('hidden');
-    document.getElementById('weightError').textContent = `Weights must sum to 100% (currently ${total.toFixed(0)}%)`;
-    return;
-  }
+  rows.forEach(r => { total += parseFloat(r.value) || 0; });
+  if (total > 0) rows.forEach(r => { r.value = ((parseFloat(r.value)||0) / total * 100).toFixed(1); });
+  updateWeights();
+}
 
-  // Build asset list
+function clearAllocs() {
+  document.getElementById('assetRows').innerHTML = '';
+  updateWeights();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Toggle Helpers
+// ═══════════════════════════════════════════════════════════
+function toggleCashflow() {
+  const type = parseInt(document.getElementById('adjustmentType').value);
+  const show = type !== 0;
+
+  document.getElementById('cfAmountWrap').style.display = (type === 1 || type === 2) ? '' : 'none';
+  document.getElementById('cfPctWrap').style.display = type === 3 ? '' : 'none';
+  document.getElementById('cfFreqWrap').style.display = show ? '' : 'none';
+  document.getElementById('cfInflationWrap').style.display = show ? '' : 'none';
+  document.getElementById('cfRollingWrap').style.display = type === 5 ? '' : 'none';
+  document.getElementById('cfSmoothingWrap').style.display = type === 6 ? '' : 'none';
+  document.getElementById('cfLifeWrap').style.display = (type === 4 || type === 5 || type === 6) ? '' : 'none';
+  document.getElementById('cfAgeWrap').style.display = type === 4 ? '' : 'none';
+  document.getElementById('cfGrowthWrap').style.display = type === 1 ? '' : 'none';
+
+  const label = document.getElementById('cfAmountLabel');
+  label.textContent = type === 1 ? 'Contribution Amount (₹)' : 'Withdrawal Amount (₹)';
+  const freqLabel = document.getElementById('cfFreqLabel');
+  freqLabel.textContent = type === 1 ? 'Contribution Frequency' : 'Withdrawal Frequency';
+}
+
+function toggleModel() {
+  const model = parseInt(document.getElementById('simulationModel').value);
+  document.getElementById('histOptions').style.display = model === 1 ? '' : 'none';
+  document.getElementById('paramOptions').style.display = (model === 3 || model === 4) ? '' : 'none';
+  document.getElementById('statOptions').style.display = (model === 2 || model === 4) ? '' : 'none';
+  toggleBootstrap();
+  toggleDistribution();
+}
+
+function toggleBootstrap() {
+  const model = parseInt(document.getElementById('simulationModel').value);
+  const bm = parseInt(document.getElementById('bootstrapModel').value);
+  document.getElementById('blockOptions').style.display = (model === 1 && bm === 2) ? '' : 'none';
+}
+
+function toggleDistribution() {
+  const model = parseInt(document.getElementById('simulationModel').value);
+  if (model === 3) {
+    document.getElementById('dofOptions').style.display =
+      document.getElementById('distribution').value === '2' ? '' : 'none';
+  }
+}
+
+function toggleInflation() {
+  const im = document.getElementById('inflationModel').value;
+  document.getElementById('paramInflation').style.display = im === '2' ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+// Build Payload
+// ═══════════════════════════════════════════════════════════
+function buildPayload() {
+  const cfType = parseInt(document.getElementById('adjustmentType').value);
   const assets = [];
   document.querySelectorAll('.asset-row').forEach(row => {
     assets.push({
@@ -500,28 +967,93 @@ async function runSimulation() {
     });
   });
 
-  const cfType = parseInt(document.getElementById('cashflowType').value);
-
-  const payload = {
+  return {
+    // Core
     initial_balance: parseFloat(document.getElementById('initialBalance').value),
     years: parseInt(document.getElementById('years').value),
     simulations: parseInt(document.getElementById('simulations').value),
     seed: parseInt(document.getElementById('seed').value),
-    model: parseInt(document.getElementById('model').value),
-    bootstrap_model: parseInt(document.getElementById('bootstrapModel').value),
-    rebalance_frequency: parseInt(document.getElementById('rebalanceFreq').value),
-    inflation_adjusted: document.getElementById('inflationAdjusted').checked,
-    assets,
-    cashflow_type: cfType || 0,
-    cashflow_amount: cfType > 0 && cfType < 3 ? parseFloat(document.getElementById('cashflowAmount').value) : null,
-    withdrawal_percentage: cfType === 3 ? parseFloat(document.getElementById('withdrawalPct').value) : null,
-    cashflow_frequency: cfType > 0 ? document.getElementById('cashflowFreq').value : 'annual',
-  };
 
-  // Show loading
+    // Portfolio
+    assets: assets,
+
+    // Model
+    model: parseInt(document.getElementById('simulationModel').value),
+    time_series_model: parseInt(document.getElementById('timeSeries')?.value || '1'),
+    bootstrap_model: parseInt(document.getElementById('bootstrapModel').value),
+    bootstrap_min_years: parseInt(document.getElementById('bootstrapMinYears')?.value || '1'),
+    bootstrap_max_years: parseInt(document.getElementById('bootstrapMaxYears')?.value || '20'),
+    circular_bootstrap: document.getElementById('circularBootstrap').value === 'true',
+
+    // Param / Forecasted
+    distribution_type: parseInt(document.getElementById('distribution')?.value || '1'),
+    degrees_of_freedom: parseInt(document.getElementById('dof')?.value || '30'),
+    custom_means: null,
+    custom_stds: null,
+    custom_correlation: null,
+
+    // Stats
+    historical_volatility: document.getElementById('historicalVolatility')?.value === 'true',
+    historical_correlations: document.getElementById('historicalCorrelations')?.value === 'true',
+    risk_free_rate: parseFloat(document.getElementById('riskFreeRate')?.value || '4.83') / 100,
+
+    // History
+    use_full_history: document.getElementById('fullHistory').value === 'true',
+    start_year: document.getElementById('startYear').value ? parseInt(document.getElementById('startYear').value) : null,
+    end_year: document.getElementById('endYear').value ? parseInt(document.getElementById('endYear').value) : null,
+
+    // Stress
+    sequence_stress_test: parseInt(document.getElementById('sequenceStressTest').value),
+
+    // Inflation
+    inflation_model: parseInt(document.getElementById('inflationModel').value),
+    inflation_mean: parseFloat(document.getElementById('inflationMean')?.value || '4.0') / 100,
+    inflation_volatility: parseFloat(document.getElementById('inflationVolatility')?.value || '3.0') / 100,
+    inflation_adjusted: document.getElementById('inflationAdjusted').checked,
+
+    // Rebalance
+    rebalance_frequency: parseInt(document.getElementById('rebalanceType').value),
+
+    // Output
+    percentiles: document.getElementById('percentileList').value.split(',').map(v => parseFloat(v.trim()) / 100).filter(Boolean),
+    return_intervals: document.getElementById('returnList').value.split(',').map(v => parseFloat(v.trim()) / 100).filter(Boolean),
+
+    // Cashflow
+    cashflow_type: cfType || 0,
+    cashflow_amount: (cfType === 1 || cfType === 2 || cfType === 5 || cfType === 6) ? parseFloat(document.getElementById('adjustmentAmount')?.value || '0') : null,
+    withdrawal_percentage: cfType === 3 ? parseFloat(document.getElementById('adjustmentPercentage')?.value || '4') : null,
+    cashflow_frequency: cfType > 0 ? document.getElementById('frequency').value : null,
+    rolling_periods: cfType === 5 ? parseInt(document.getElementById('rollingAveragePeriods')?.value || '3') : null,
+    smoothing_rate: cfType === 6 ? parseFloat(document.getElementById('smoothingRate')?.value || '0.75') : null,
+    life_expectancy_model: cfType === 4 ? document.getElementById('lifeExpectancyModel').value : null,
+    current_age: cfType === 4 ? parseInt(document.getElementById('currentAge')?.value || '30') : null,
+    cashflow_inflation_adjusted: document.getElementById('cashflowInflationAdjusted')?.value === 'true',
+
+    // Misc
+    investment_horizon: parseInt(document.getElementById('investmentHorizon')?.value || '1'),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// Run Simulation
+// ═══════════════════════════════════════════════════════════
+async function runSimulation() {
+  updateWeights();
+  const rows = document.querySelectorAll('.weight-input');
+  let total = 0;
+  rows.forEach(r => { total += parseFloat(r.value) || 0; });
+  if (Math.abs(total - 100) > 0.01) {
+    document.getElementById('weightError').classList.remove('hidden');
+    document.getElementById('weightError').textContent = `Allocations must sum to 100% (currently ${total.toFixed(0)}%)`;
+    return;
+  }
+  document.getElementById('weightError').classList.add('hidden');
+
+  const payload = buildPayload();
+
   document.getElementById('loadingOverlay').style.display = 'flex';
   document.getElementById('runBtn').disabled = true;
-  document.getElementById('loadingMsg').textContent = `Running ${payload.simulations} simulations...`;
+  document.getElementById('loadingMsg').textContent = `Running ${payload.simulations.toLocaleString()} simulations × ${payload.years} years...`;
 
   try {
     const res = await fetch('/simulate', {
@@ -529,16 +1061,14 @@ async function runSimulation() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.detail || 'Simulation failed');
     }
-
     const data = await res.json();
     lastResult = data;
+    showTab('results');
     displayResults(data);
-
   } catch(e) {
     alert('Error: ' + e.message);
   } finally {
@@ -547,77 +1077,77 @@ async function runSimulation() {
   }
 }
 
-// ── Display Results ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// Display Results
+// ═══════════════════════════════════════════════════════════
+function fmtPct(v) {
+  if (typeof v === 'number') return (v * 100).toFixed(2) + '%';
+  return String(v);
+}
+
+function fmtNum(v) {
+  if (typeof v === 'number') return '₹' + formatCr(v);
+  return String(v);
+}
+
 function displayResults(data) {
-  showTab('results');
+  // Meta
+  document.getElementById('resultMeta').textContent =
+    `${data.n_simulations.toLocaleString()} portfolios · ${data.n_years} years · ${data.assets?.join(', ') || ''}`;
 
   // Key metrics
-  document.getElementById('res-cagr').textContent = (data.median_cagr * 100).toFixed(1) + '%';
-  document.getElementById('res-final').textContent = '₹' + formatCr(data.median_final_balance);
-  document.getElementById('res-swr').textContent = (data.swr * 100).toFixed(1) + '%';
-
-  const sr = data.success_rate;
+  document.getElementById('res-cagr').textContent = fmtPct(data.median_cagr);
+  document.getElementById('res-final').textContent = fmtNum(data.median_final_balance);
+  document.getElementById('res-swr').textContent = fmtPct(data.swr);
   const srEl = document.getElementById('res-sr');
-  srEl.textContent = (sr * 100).toFixed(0) + '%';
-  srEl.className = 'text-3xl font-bold mt-1 ' + (sr >= 0.9 ? 'text-green-300' : sr >= 0.5 ? 'text-yellow-300' : 'text-red-300');
+  const sr = data.success_rate;
+  srEl.textContent = fmtPct(sr);
+  srEl.className = 'result-stat-value ' + (sr >= 0.9 ? 'text-green-600' : sr >= 0.5 ? 'text-yellow-600' : 'text-red-600');
 
-  // Performance summary table
+  // Performance Summary
   const perfBody = document.getElementById('perfBody');
   perfBody.innerHTML = '';
-  const perfSummary = data.performance_summary;
-  const labels = {
-    'Time Weighted Rate of Return (nominal)': 'Portfolio Return (nominal)',
-    'Time Weighted Rate of Return (real)': 'Portfolio Return (real)',
-    'Portfolio End Balance (nominal)': 'End Balance (nominal)',
-    'Portfolio End Balance (real)': 'End Balance (real)',
-    'Annual Mean Return': 'Annual Mean Return',
+  const perf = data.performance_summary || {};
+  const statLabels = {
+    'Time Weighted Rate of Return (nominal)': 'Time Weighted Rate of Return (nominal)',
+    'Time Weighted Rate of Return (real)': 'Time Weighted Rate of Return (real)',
+    'Portfolio End Balance (nominal)': 'Portfolio End Balance (nominal)',
+    'Portfolio End Balance (real)': 'Portfolio End Balance (real)',
+    'Annual Mean Return': 'Annual Mean Return (nominal)',
     'Annualized Volatility': 'Annualized Volatility',
     'Sharpe Ratio': 'Sharpe Ratio',
     'Sortino Ratio': 'Sortino Ratio',
     'Maximum Drawdown': 'Maximum Drawdown',
   };
-  for (const [key, label] of Object.entries(labels)) {
-    if (!perfSummary[key]) continue;
-    const vals = perfSummary[key];
-    const tr = document.createElement('tr');
+  Object.entries(statLabels).forEach(([key, label]) => {
+    if (!perf[key]) return;
+    const vals = perf[key];
     const isBalance = label.includes('Balance');
-    const isRatio = label.includes('Ratio');
-    const fmt = v => {
-      if (typeof v === 'number' && !isNaN(v)) {
-        if (isBalance) return '₹' + formatCr(v);
-        if (isRatio) return v.toFixed(2);
-        return (v * 100).toFixed(2) + '%';
-      }
-      return String(v);
-    };
-    tr.innerHTML = `
-      <td class="font-semibold text-slate-700">${label}</td>
-      <td>${fmt(vals.p10)}</td>
-      <td>${fmt(vals.p25)}</td>
-      <td class="font-bold">${fmt(vals.p50)}</td>
-      <td>${fmt(vals.p75)}</td>
-      <td>${fmt(vals.p90)}</td>
-    `;
+    const isRatio = label.includes('Ratio') || label.includes('Sharpe') || label.includes('Sortino');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="font-semibold text-slate-700">${label}</td>
+      <td class="num-cell">${isBalance ? fmtNum(vals.p10) : isRatio ? vals.p10 : fmtPct(vals.p10)}</td>
+      <td class="num-cell">${isBalance ? fmtNum(vals.p25) : isRatio ? vals.p25 : fmtPct(vals.p25)}</td>
+      <td class="num-cell font-bold">${isBalance ? fmtNum(vals.p50) : isRatio ? vals.p50 : fmtPct(vals.p50)}</td>
+      <td class="num-cell">${isBalance ? fmtNum(vals.p75) : isRatio ? vals.p75 : fmtPct(vals.p75)}</td>
+      <td class="num-cell">${isBalance ? fmtNum(vals.p90) : isRatio ? vals.p90 : fmtPct(vals.p90)}</td>`;
     perfBody.appendChild(tr);
-  }
+  });
 
-  // Balance percentile table
+  // Balance Percentiles
   const balBody = document.getElementById('balanceBody');
   balBody.innerHTML = '';
-  const balPct = data.balance_percentiles;
+  const balPct = data.balance_percentiles || {};
   const yearKeys = Object.keys(balPct).map(Number).filter(k => !isNaN(k)).sort((a,b) => a-b);
-  const dispYears = yearKeys.filter((_, i, arr) => i === 0 || i === arr.length-1 || i % Math.ceil(arr.length/8) === 0);
-  dispYears.forEach(yr => {
+  yearKeys.forEach(yr => {
     const v = balPct[yr];
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="font-semibold">${yr}</td>
-      <td>₹${formatCr(v.p10)}</td>
-      <td>₹${formatCr(v.p25)}</td>
-      <td class="font-bold">₹${formatCr(v.p50)}</td>
-      <td>₹${formatCr(v.p75)}</td>
-      <td>₹${formatCr(v.p90)}</td>
-    `;
+    tr.innerHTML = `<td class="num-cell font-semibold">${yr}</td>
+      <td class="num-cell">${fmtNum(v.p10)}</td>
+      <td class="num-cell">${fmtNum(v.p25)}</td>
+      <td class="num-cell font-bold">${fmtNum(v.p50)}</td>
+      <td class="num-cell">${fmtNum(v.p75)}</td>
+      <td class="num-cell">${fmtNum(v.p90)}</td>`;
     balBody.appendChild(tr);
   });
 
@@ -625,35 +1155,79 @@ function displayResults(data) {
   drawBalanceChart(balPct, yearKeys);
   drawTerminalChart(data);
 
-  // Loss probabilities
+  // Simulated Assets
+  const simAssetsBody = document.getElementById('simAssetsBody');
+  const simAssetsHead = document.getElementById('simAssetsHead');
+  simAssetsBody.innerHTML = '';
+  simAssetsHead.innerHTML = '';
+  if (data.simulated_assets) {
+    const assets = Object.keys(data.simulated_assets);
+    if (assets.length) {
+      const cols = Object.keys(data.simulated_assets[assets[0]]);
+      let headHtml = '<tr><th>Name</th>';
+      cols.forEach(c => { headHtml += `<th class="num-cell">${c}</th>`; });
+      headHtml += '</tr>';
+      simAssetsHead.innerHTML = headHtml;
+      assets.forEach(asset => {
+        const row = data.simulated_assets[asset];
+        let bodyHtml = `<tr><td class="font-semibold">${asset}</td>`;
+        cols.forEach(c => { bodyHtml += `<td class="num-cell">${row[c]}</td>`; });
+        bodyHtml += '</tr>';
+        simAssetsBody.innerHTML += bodyHtml;
+      });
+    }
+  }
+
+  // Expected Returns
+  const expBody = document.getElementById('expReturnBody');
+  expBody.innerHTML = '';
+  if (data.expected_returns) {
+    const pcts = Object.keys(data.expected_returns);
+    const yrs = Object.keys(data.expected_returns[pcts[0]] || {});
+    pcts.forEach(pct => {
+      const row = data.expected_returns[pct];
+      let html = `<tr><td class="font-semibold">${pct}</td>`;
+      [1,3,5,10,15,20,25,30].forEach(y => {
+        html += `<td class="num-cell">${row[y] || '—'}</td>`;
+      });
+      html += '</tr>';
+      expBody.innerHTML += html;
+    });
+  }
+
+  // Loss Probabilities
   const lossBody = document.getElementById('lossBody');
   lossBody.innerHTML = '';
   const lossPct = data.loss_probabilities || {};
   Object.entries(lossPct).forEach(([key, vals]) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${key}</td>` + [1,3,5,10,15,20].map(h => {
+    let html = `<tr><td>${key}</td>`;
+    [1,3,5,10,15,20].forEach(h => {
       const v = vals[h] || '—';
       const isHigh = typeof v === 'string' && parseFloat(v) > 0.2;
-      return `<td class="${isHigh ? 'text-red-600 font-semibold' : ''}">${v}</td>`;
-    }).join('');
-    lossBody.appendChild(tr);
+      html += `<td class="num-cell ${isHigh ? 'text-red-600 font-semibold' : ''}">${v}</td>`;
+    });
+    html += '</tr>';
+    lossBody.innerHTML += html;
   });
 }
 
 function formatCr(n) {
   n = parseFloat(n);
+  if (isNaN(n)) return '—';
   if (n >= 1e7) return (n/1e7).toFixed(1) + ' Cr';
   if (n >= 1e5) return (n/1e5).toFixed(1) + ' L';
   if (n >= 1e3) return (n/1e3).toFixed(0) + ' K';
   return n.toFixed(0);
 }
 
-// ── Charts ────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// Charts
+// ═══════════════════════════════════════════════════════════
 function drawBalanceChart(balPct, years) {
-  const ctx = document.getElementById('balanceChart').getContext('2d');
+  const ctx = document.getElementById('balanceChart')?.getContext('2d');
+  if (!ctx) return;
   if (balanceChart) balanceChart.destroy();
 
-  const labels = years;
   const p10 = years.map(y => parseFloat(balPct[y]?.p10 || 0));
   const p25 = years.map(y => parseFloat(balPct[y]?.p25 || 0));
   const p50 = years.map(y => parseFloat(balPct[y]?.p50 || 0));
@@ -663,13 +1237,13 @@ function drawBalanceChart(balPct, years) {
   balanceChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels,
+      labels: years,
       datasets: [
-        { label: 'p90', data: p90, borderColor: '#93c5fd', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5 },
-        { label: 'p75', data: p75, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.3, fill: '+origin', borderWidth: 1.5 },
+        { label: '90th', data: p90, borderColor: '#93c5fd', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.2 },
+        { label: '75th', data: p75, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', tension: 0.3, fill: false, borderWidth: 1.2 },
         { label: 'Median', data: p50, borderColor: '#1e40af', backgroundColor: 'transparent', tension: 0.3, borderWidth: 2.5 },
-        { label: 'p25', data: p25, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', tension: 0.3, fill: false, borderWidth: 1.5 },
-        { label: 'p10', data: p10, borderColor: '#93c5fd', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.5 },
+        { label: '25th', data: p25, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', tension: 0.3, fill: false, borderWidth: 1.2 },
+        { label: '10th', data: p10, borderColor: '#93c5fd', backgroundColor: 'transparent', tension: 0.3, borderWidth: 1.2 },
       ],
     },
     options: {
@@ -677,16 +1251,14 @@ function drawBalanceChart(balPct, years) {
       plugins: {
         legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
         tooltip: {
-          callbacks: {
-            label: ctx => `${ctx.dataset.label}: ₹${formatCr(ctx.parsed.y)}`,
-          },
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${formatCr(ctx.parsed.y)}` },
         },
       },
       scales: {
         x: { title: { display: true, text: 'Year' } },
         y: {
-          title: { display: true, text: 'Balance (₹)' },
-          ticks: { callback: v => '₹' + formatCr(v) },
+          title: { display: true, text: 'Portfolio Balance (₹)' },
+          ticks: { callback: v => formatCr(v) },
         },
       },
     },
@@ -694,34 +1266,27 @@ function drawBalanceChart(balPct, years) {
 }
 
 function drawTerminalChart(data) {
-  const ctx = document.getElementById('terminalChart').getContext('2d');
+  const ctx = document.getElementById('terminalChart')?.getContext('2d');
+  if (!ctx) return;
   if (terminalChart) terminalChart.destroy();
 
-  // Sample from the balance percentile data to simulate a distribution
-  // We use p10, p25, p50, p75, p90 as anchor points
-  const perf = data.performance_summary;
-  const p10 = parseFloat(perf['Portfolio End Balance (nominal)']?.p10) || data.median_final_balance * 0.7;
-  const p25 = parseFloat(perf['Portfolio End Balance (nominal)']?.p25) || data.median_final_balance * 0.85;
+  const perf = data.performance_summary || {};
+  const p10 = parseFloat(perf['Portfolio End Balance (nominal)']?.p10) || data.median_final_balance * 0.3;
+  const p25 = parseFloat(perf['Portfolio End Balance (nominal)']?.p25) || data.median_final_balance * 0.6;
   const p50 = data.median_final_balance;
-  const p75 = parseFloat(perf['Portfolio End Balance (nominal)']?.p75) || data.median_final_balance * 1.2;
-  const p90 = parseFloat(perf['Portfolio End Balance (nominal)']?.p90) || data.median_final_balance * 1.5;
-  const p5 = p10 * 0.5;
-  const p95 = p90 * 1.2;
+  const p75 = parseFloat(perf['Portfolio End Balance (nominal)']?.p75) || data.median_final_balance * 1.5;
+  const p90 = parseFloat(perf['Portfolio End Balance (nominal)']?.p90) || data.median_final_balance * 2.5;
 
-  // Generate histogram-like data
   const bins = 20;
+  const p5 = p10 * 0.3;
+  const p95 = p90 * 1.3;
   const step = (p95 - p5) / bins;
-  const labels = [];
-  const counts = [];
+  const labels = [], counts = [];
   for (let i = 0; i < bins; i++) {
-    const lo = p5 + i * step;
-    const hi = lo + step;
-    const label = '₹' + formatCr((lo + hi) / 2);
-    labels.push(label);
-    // Approximate bell curve using CDF differences
-    const t = ((lo + hi) / 2 - p50) / (p90 - p50);
-    const pdf = Math.exp(-0.5 * t * t * 4);
-    counts.push(pdf);
+    const mid = p5 + (i + 0.5) * step;
+    labels.push(formatCr(mid));
+    const t = (mid - p50) / Math.max(p90 - p50, 1);
+    counts.push(Math.exp(-0.5 * t * t * 4));
   }
 
   terminalChart = new Chart(ctx, {
@@ -738,21 +1303,21 @@ function drawTerminalChart(data) {
     },
     options: {
       responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            title: (items) => items[0].label,
-            label: () => null,
-          },
-        },
-      },
+      plugins: { legend: { display: false } },
       scales: {
-        x: { title: { display: true, text: 'Final Balance' }, ticks: { maxRotation: 45, font: { size: 9 } } },
-        y: { title: { display: false }, ticks: { display: false }, grid: { display: false } },
+        x: { title: { display: true, text: 'Final Balance (₹)' }, ticks: { maxRotation: 45, font: { size: 9 } } },
+        y: { display: false, grid: { display: false } },
       },
     },
   });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Switch Portfolio Type
+// ═══════════════════════════════════════════════════════════
+function switchPortfolioType() {
+  // Future: switch between asset-class and ticker-level portfolios
+  // For now, both use the same asset registry
 }
 </script>
 </body>
