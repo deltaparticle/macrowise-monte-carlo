@@ -1097,6 +1097,35 @@ function fmtNum(v) {
   return String(v);
 }
 
+function fmtCorr(v) {
+  // Format correlation to 3 decimal places
+  if (typeof v === 'number') return v.toFixed(3);
+  // If string, check if it's a number or percentage
+  const s = String(v);
+  if (s.includes('%')) return s;  // Keep percentage as is
+  const n = parseFloat(s);
+  if (!isNaN(n)) return n.toFixed(3);
+  return s;
+}
+
+function fmtAssetVal(v, col) {
+  // Format simulated asset values based on column type
+  const s = String(v);
+
+  // Correlation columns - 3 decimal places
+  if (col === 'CAGR' || col === 'Expected Annual Return' || col === 'Volatility') {
+    // These are percentages - format to 2 decimal places
+    const n = parseFloat(s.replace('%', ''));
+    if (!isNaN(n)) return (n).toFixed(2) + '%';
+  }
+
+  // Correlation values - 3 decimal places
+  const n = parseFloat(s);
+  if (!isNaN(n) && !s.includes('%')) return n.toFixed(3);
+
+  return s;
+}
+
 function displayResults(data) {
   // Meta
   document.getElementById('resultMeta').textContent =
@@ -1178,7 +1207,7 @@ function displayResults(data) {
       assets.forEach(asset => {
         const row = data.simulated_assets[asset];
         let bodyHtml = `<tr><td class="font-semibold">${asset}</td>`;
-        cols.forEach(c => { bodyHtml += `<td class="num-cell">${row[c]}</td>`; });
+        cols.forEach(c => { bodyHtml += `<td class="num-cell">${fmtAssetVal(row[c], c)}</td>`; });
         bodyHtml += '</tr>';
         simAssetsBody.innerHTML += bodyHtml;
       });
