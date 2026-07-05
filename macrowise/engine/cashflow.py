@@ -1,14 +1,16 @@
 """
-Cash Flow Engine — handles PV's 7 cashflow types with Indian currency conventions.
+Cash Flow Engine — handles PV's 9 cashflow types with Indian currency conventions.
 
 Cashflow Types (matching PV):
-  0 = None          — No cashflow
-  1 = Contribute    — Fixed periodic contribution (SIP)
-  2 = Withdraw      — Fixed periodic withdrawal
-  3 = Fixed %       — Withdraw fixed % of portfolio balance
+  0 = None
+  1 = Contribute — Fixed periodic contribution (SIP)
+  2 = Withdraw — Fixed periodic withdrawal
+  3 = Fixed % — Withdraw fixed % of portfolio balance
   4 = Life Expectancy — RMD-style withdrawal based on age
-  5 = Rolling Avg   — 3-year rolling average spending rule
-  6 = Geometric     — Guyton-Klinger geometric spending rule
+  5 = Rolling Avg — 3-year rolling average spending rule
+  6 = Geometric — Guyton-Klinger geometric spending rule
+  8 = Fixed Withdrawal + Pct Change — Fixed amount with annual % change
+  9 = Contribution + Pct Change — Fixed contribution with annual % change
 """
 
 import numpy as np
@@ -17,7 +19,7 @@ from typing import Literal
 
 
 Frequency = Literal["monthly", "quarterly", "annual"]
-AdjustmentType = Literal[0, 1, 2, 3, 4, 5, 6]
+AdjustmentType = Literal[0, 1, 2, 3, 4, 5, 6, 8, 9]
 
 
 @dataclass
@@ -65,6 +67,7 @@ class CashFlowConfig:
     rolling_periods: int = 3
     smoothing_rate: float = 0.75
     withdrawal_percentage: float = 4.0
+    pct_change: float = 0.0  # Annual % change for type 8/9
 
     # Month multipliers
     _MONTHLY = 12
@@ -115,8 +118,7 @@ class CashFlowEngine:
 
         if cfg.adjustment_type == 0:
             return np.zeros(n_months)
-
-        if cfg.adjustment_type == 1:
+        elif cfg.adjustment_type == 1:
             return self._contribution_schedule(n_months, sign=1)
         elif cfg.adjustment_type == 2:
             return self._fixed_withdrawal_schedule(n_months, sign=-1)
@@ -126,8 +128,12 @@ class CashFlowEngine:
             return self._life_expectancy_schedule(n_months)
         elif cfg.adjustment_type == 5:
             return self._rolling_average_schedule(n_months)
-        elif cfg.adignment_type == 6:
+        elif cfg.adjustment_type == 6:
             return self._geometric_schedule(n_months)
+        elif cfg.adjustment_type == 8:
+            return self._fixed_with_pct_change_schedule(n_months, sign=-1)
+        elif cfg.adjustment_type == 9:
+            return self._fixed_with_pct_change_schedule(n_months, sign=1)
         else:
             return np.zeros(n_months)
 
@@ -172,6 +178,24 @@ class CashFlowEngine:
     def _fixed_withdrawal_schedule(self, n_months: int, sign: float = -1.0) -> np.ndarray:
         """Fixed periodic withdrawal."""
         return self._contribution_schedule(n_months, sign=sign)
+
+    def _fixed_with_pct_change_schedule(self, n_months: int, sign: float = -1.0) -> np.ndarray:
+        """
+        Fixed amount with annual percentage change (PV type 8 = withdrawal, type 9 = contribution).
+        The amount grows/shrinks by pct_change each year.
+        """
+        result = np.zeros(n_months)
+        for m in range(n_months):
+            year = m / 12
+            amount = self.config.base_amount * (1 + self.config.pct_change) ** year
+            per_period = amount / self.config.periods_per_year
+            if self.config.frequency == "monthly":
+                result[m] = sign * per_period
+            elif self.config.frequency == "quarterly":
+                result[m] = sign * per_period if m % 3 == 0 else 0.0
+            else:
+                result[m] = sign * per_period if m % 12 == 0 else 0.0
+        return result
 
     def _fixed_pct_schedule(self, n_months: int) -> np.ndarray:
         """

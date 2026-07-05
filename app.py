@@ -313,3 +313,131 @@ def simulate(req: MonteCarloRequest):
         raise
     except Exception as e:
         raise HTTPException(500, detail=str(e))
+
+
+# ── Financial Goals ──────────────────────────────────────────────────────────────
+
+class FinancialGoalRequest(BaseModel):
+    """Request model for Financial Goals simulation."""
+    initial_balance: float = Field(1_000_000, description="Starting portfolio value (INR)")
+    years: int = Field(30, ge=1, le=100, description="Total simulation years")
+    simulations: int = Field(1000, ge=10, le=10000, description="Number of simulations")
+
+    # Phase settings
+    planning_type: int = Field(2, ge=1, le=2, description="1=Single stage, 2=Multi-stage")
+    career_years: int = Field(20, ge=0, description="Years until retirement")
+    glide_path_years: int = Field(10, ge=0, description="Glide path transition years")
+    stress_test_retirement: bool = Field(True, description="Apply worst years at retirement start")
+
+    # Portfolios
+    start_assets: List[AssetAllocation] = Field(
+        default_factory=lambda: [AssetAllocation(asset="NIFTY_50", weight=0.60),
+                                AssetAllocation(asset="SBI_GILT", weight=0.40)],
+        description="Starting (career) portfolio"
+    )
+    end_assets: List[AssetAllocation] = Field(
+        default_factory=lambda: [AssetAllocation(asset="NIFTY_50", weight=0.40),
+                                AssetAllocation(asset="SBI_GILT", weight=0.60)],
+        description="Ending (retirement) portfolio"
+    )
+
+    # Simulation model
+    model: int = Field(1, ge=1, le=4, description="1=Historical, 2=Statistical, 3=Parameterized, 4=Forecasted")
+    bootstrap_model: int = Field(1, ge=0, le=2, description="0=SingleMonth, 1=SingleYear, 2=Block")
+    inflation_adjusted: bool = Field(True, description="Inflation-adjusted results")
+    inflation_model: int = Field(1, ge=1, le=2, description="1=Historical, 2=Parameterized")
+    inflation_mean: float = Field(0.04, ge=0, le=1, description="Inflation mean")
+    rebalance_frequency: int = Field(1, ge=0, le=4, description="Rebalance frequency")
+    sequence_stress_test: int = Field(0, ge=0, le=10, description="Sequence stress test")
+    risk_free_rate: float = Field(0.0483, ge=0, le=1, description="Risk-free rate")
+
+    # Goals (simplified for now - list of goal dicts)
+    career_goals: List[dict] = Field(default_factory=list, description="Career stage goals")
+    retirement_goals: List[dict] = Field(default_factory=list, description="Retirement stage goals")
+
+    seed: int = Field(42, description="Random seed")
+
+
+class FinancialGoalsResponse(BaseModel):
+    n_simulations: int
+    n_years: int
+    career_years: int
+    success_rate: float
+    median_cagr: float
+    median_final_balance: float
+    balance_percentiles: dict
+    goal_summary: Optional[dict] = None
+
+
+@app.post("/simulate-goals", response_model=FinancialGoalsResponse, summary="Run Financial Goals simulation")
+def simulate_goals(req: FinancialGoalRequest):
+    """Run a multi-stage financial goals Monte Carlo simulation."""
+    from macrowise.engine.financial_goals import GoalsConfig, GoalsSimulation, FinancialGoal
+
+    try:
+        # Build asset lists
+        start_assets = [(a.asset, a.weight) for a in req.start_assets]
+        end_assets = [(a.asset, a.weight) for a in req.end_assets]
+
+        # Build goal objects
+        def build_goals(goal_dicts: List[dict]) -> List[FinancialGoal]:
+            goals = []
+            for g in goal_dicts:
+                goals.append(FinancialGoal(
+                    name=g.get("name", "Goal"),
+                    goal_type=g.get("type", 2),
+                    amount=g.get("amount", 0),
+                    percentage=g.get("percentage", 4.0),
+                    frequency=g.get("frequency", "annual"),
+                    inflation_adjusted=g.get("inflation_adjusted", req.inflation_adjusted),
+                    inflation_mean=req.inflation_mean,
+                    start_type=g.get("start_type", 1),
+                    start_years=g.get("start_years", 0),
+                    occurs_type=g.get("occurs_type", 2),
+                    occurs_times=g.get("occurs_times", 1),
+                    pct_change=g.get("pct_change", 0.0),
+                    rolling_periods=g.get("rolling_periods", 3),
+                    smoothing_rate=g.get("smoothing_rate", 0.75),
+                ))
+            return goals
+
+        config = GoalsConfig(
+            initial_balance=req.initial_balance,
+            years=req.years,
+            simulations=req.simulations,
+            planning_type=req.planning_type,
+            career_years=req.career_years,
+            glide_path_years=req.glide_path_years,
+            stress_test_retirement=req.stress_test_retirement,
+            start_assets=start_assets,
+            end_assets=end_assets,
+            career_goals=build_goals(req.career_goals),
+            retirement_goals=build_goals(req.retirement_goals),
+            model=req.model,
+            bootstrap_model=req.bootstrap_model,
+            seed=req.seed,
+            inflation_adjusted=req.inflation_adjusted,
+            inflation_model=req.inflation_model,
+            inflation_mean=req.inflation_mean,
+            rebalance_frequency=req.rebalance_frequency,
+            sequence_stress_test=req.sequence_stress_test,
+            risk_free_rate=req.risk_free_rate,
+        )
+
+        sim = GoalsSimulation(config)
+        results = sim.run()
+
+        return FinancialGoalsResponse(
+            n_simulations=results.n_simulations,
+            n_years=results.n_years,
+            career_years=config.career_years,
+            success_rate=results.success_rate,
+            median_cagr=results.median_cagr,
+            median_final_balance=results.median_final_balance,
+            balance_percentiles=results.balance_percentiles,
+            goal_summary={"type": "simplified", "message": "Goals applied per-phase"},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
