@@ -19,7 +19,7 @@ from typing import Literal
 
 
 Frequency = Literal["monthly", "quarterly", "annual"]
-AdjustmentType = Literal[0, 1, 2, 3, 4, 5, 6, 8, 9]
+AdjustmentType = Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # 7 reserved for future use
 
 
 @dataclass

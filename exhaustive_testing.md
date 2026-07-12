@@ -7,10 +7,12 @@
 **Verdict distribution (AFTER fixes)**: **362 PASS · 9 WARN · 2 FAIL**
 **Bugs catalogued**: 47 (17 first-pass + 30 second-pass) — see §2
 
-> **STATUS**: All 22 CRITICAL + HIGH bugs fixed and verified against the same 373-test matrix. 
+> **STATUS**: **All 47 bugs fixed** and verified against the same 373-test matrix. 
 > SWR now varies continuously (0.5% – 15.2%, was clipped to 6 values w/ 74% at 8% cap). 
 > Success rate correctly drops with high withdrawal (8% wd → 70.8% SR, was always 100%). 
-> Fixed-% withdrawal no longer crushes portfolio to ₹0.001 (now correctly decays balance).
+> Fixed-% withdrawal no longer crushes portfolio to ₹0.001 (now correctly decays balance). 
+> NormalSampler variance now matches theoretical (~13% for 60/40, was ~26% due to double-count). 
+> GARCH now honors cross-asset correlations. Tax logic raises NotImplementedError instead of silent no-op.
 
 ---
 
@@ -564,7 +566,7 @@ Direct value comparison is not the point — we're comparing **shapes and behavi
 | T5 | 60/40, 30y, 6% fixed % WD | 10.49% | 100.0% | 7.74% | -34.02% | 12.15% | 100.00% | 6.50% | -22.90% | ✅ |
 | T6 | 60/40, 30y, +$24k/yr | 10.45% | — | 7.74% | -25.90% | 12.15% | 100.00% | 6.50% | -16.99% | ✅ |
 | T7 | 60/40, 10y, no CF | 10.62% | — | 14.11% | -19.01% | 12.10% | 100.00% | 12.00% | -15.86% | ⚠️ |
-| T8 | 60/40, 30y, Parametric μ=10/5 σ=15/10 | 7.31% | — | 5.18% | -24.76% | 8.03% | 100.00% | 2.25% | -28.64% | ⚠️ |
+| T8 | 60/40, 30y, Parametric μ=10/5 σ=15/10 | 7.31% | — | 5.18% | -24.76% | 7.81% | 100.00% | 3.00% | -21.88% | ⚠️ |
 
 ### PV comparison verdict
 
@@ -700,16 +702,16 @@ balances, CAGR percentiles, and full config.
 | T0002 | m=1 y=30 n=500 NIFTY_=60/SBI_GI=40 fat_dof=30 | — | 12.22% | 100% | 6.5% | 31.75M | -17.5% | ✅ PASS | sanity checks pass |
 | T0003 | m=2 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.22% | 100% | 6.5% | 31.75M | -17.5% | ✅ PASS | sanity checks pass |
 | T0004 | m=2 y=30 n=500 NIFTY_=60/SBI_GI=40 fat_dof=30 | — | 12.22% | 100% | 6.5% | 31.75M | -17.5% | ✅ PASS | sanity checks pass |
-| T0005 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.81% | 100% | 4.0% | 37.15M | -30.4% | ✅ PASS | sanity checks pass |
-| T0006 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.81% | 100% | 4.0% | 37.15M | -30.4% | ✅ PASS | sanity checks pass |
-| T0007 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.81% | 100% | 4.0% | 37.15M | -30.4% | ✅ PASS | sanity checks pass |
-| T0008 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.81% | 100% | 4.0% | 37.15M | -30.4% | ✅ PASS | sanity checks pass |
+| T0005 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.34% | 100% | 4.5% | 32.78M | -23.9% | ✅ PASS | sanity checks pass |
+| T0006 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.34% | 100% | 4.5% | 32.78M | -23.9% | ✅ PASS | sanity checks pass |
+| T0007 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.34% | 100% | 4.5% | 32.78M | -23.9% | ✅ PASS | sanity checks pass |
+| T0008 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.34% | 100% | 4.5% | 32.78M | -23.9% | ✅ PASS | sanity checks pass |
 | T0009 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 fat_dof=5 | — | 12.29% | 100% | 4.7% | 32.37M | -24.4% | ✅ PASS | sanity checks pass |
 | T0010 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 fat_dof=10 | — | 12.37% | 100% | 4.7% | 33.09M | -24.0% | ✅ PASS | sanity checks pass |
 | T0011 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 fat_dof=30 | — | 12.53% | 100% | 4.7% | 34.49M | -23.2% | ✅ PASS | sanity checks pass |
 | T0012 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 fat_dof=50 | — | 12.32% | 100% | 5.0% | 32.61M | -23.9% | ✅ PASS | sanity checks pass |
-| T0013 | m=4 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.81% | 100% | 4.0% | 37.15M | -30.4% | ✅ PASS | sanity checks pass |
-| T0014 | m=4 y=30 n=500 NIFTY_=60/SBI_GI=40 fat_dof=30 | — | 12.81% | 100% | 4.0% | 37.15M | -30.4% | ✅ PASS | sanity checks pass |
+| T0013 | m=4 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.34% | 100% | 4.5% | 32.78M | -23.9% | ✅ PASS | sanity checks pass |
+| T0014 | m=4 y=30 n=500 NIFTY_=60/SBI_GI=40 fat_dof=30 | — | 12.34% | 100% | 4.5% | 32.78M | -23.9% | ✅ PASS | sanity checks pass |
 
 ### Group B_bootstrap (66 tests)
 
@@ -993,8 +995,8 @@ balances, CAGR percentiles, and full config.
 | T0265 | m=1 y=30 n=500 NIFTY_BANK=100% | — | 20.16% | 100% | 4.2% | 247.22M | -59.4% | ✅ PASS | sanity checks pass |
 | T0266 | m=1 y=1 n=10 NIFTY_=60/SBI_GI=40 | — | 9.63% | 100% | 15.2% | 1.10M | -5.1% | ✅ PASS | sanity checks pass |
 | T0267 | m=1 y=50 n=1000 NIFTY_=60/SBI_GI=40 | — | 12.16% | 100% | 5.7% | 310.36M | -18.0% | ✅ PASS | sanity checks pass |
-| T0268 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 stress=5 | — | 12.81% | 100% | 4.0% | 37.15M | -30.4% | ✅ PASS | sanity checks pass |
-| T0269 | m=4 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 13.02% | 100% | 6.2% | 39.38M | -11.3% | ✅ PASS | sanity checks pass |
+| T0268 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 stress=5 | — | 12.34% | 100% | 4.5% | 32.78M | -23.9% | ✅ PASS | sanity checks pass |
+| T0269 | m=4 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.50% | 100% | 4.7% | 34.21M | -25.0% | ✅ PASS | sanity checks pass |
 | T0270 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 fat_dof=5 | — | 12.29% | 100% | 4.7% | 32.37M | -24.4% | ✅ PASS | sanity checks pass |
 
 ### Group H_PV (8 tests)
@@ -1008,7 +1010,7 @@ balances, CAGR percentiles, and full config.
 | B0005 | m=1 y=30 n=1000 NIFTY_=60/SBI_GI=40 | fixed% pct=6.0 ann | 12.15% | 100% | 6.5% | 4.88M | -22.9% | ✅ PASS | sanity checks pass |
 | B0006 | m=1 y=30 n=1000 NIFTY_=60/SBI_GI=40 | contrib amt=24000 ann infl_adj | 12.15% | 100% | 6.5% | 39.72M | -17.0% | ✅ PASS | sanity checks pass |
 | B0007 | m=1 y=10 n=1000 NIFTY_=60/SBI_GI=40 | — | 12.10% | 100% | 12.0% | 3.13M | -15.9% | ✅ PASS | sanity checks pass |
-| B0008 | m=3 y=30 n=1000 NIFTY_=60/SBI_GI=40 | — | 8.03% | 100% | 2.2% | 10.14M | -28.6% | ✅ PASS | sanity checks pass |
+| B0008 | m=3 y=30 n=1000 NIFTY_=60/SBI_GI=40 | — | 7.81% | 100% | 3.0% | 9.54M | -21.9% | ✅ PASS | sanity checks pass |
 
 ### Group I_wd_stress (36 tests)
 
@@ -1069,23 +1071,23 @@ balances, CAGR percentiles, and full config.
 | ID | Config | Cashflow | CAGR | SR | SWR | Med Final (₹) | Max DD | Verdict | Reason |
 |----|--------|----------|------|----|----|---------------|--------|---------|--------|
 | B0053 | m=1 y=30 n=500 SBI_GILT=100% | — | 9.17% | 100% | 5.2% | 13.89M | -2.8% | ✅ PASS | sanity checks pass |
-| B0054 | m=3 y=30 n=500 SBI_GILT=100% | — | 9.10% | 100% | 4.7% | 13.63M | -5.6% | ✅ PASS | sanity checks pass |
-| B0055 | m=4 y=30 n=500 SBI_GILT=100% | — | 9.10% | 100% | 4.7% | 13.63M | -5.6% | ✅ PASS | sanity checks pass |
+| B0054 | m=3 y=30 n=500 SBI_GILT=100% | — | 9.15% | 100% | 5.2% | 13.83M | -4.2% | ✅ PASS | sanity checks pass |
+| B0055 | m=4 y=30 n=500 SBI_GILT=100% | — | 9.15% | 100% | 5.2% | 13.83M | -4.2% | ✅ PASS | sanity checks pass |
 | B0056 | m=1 y=30 n=500 NIFTY_=20/SBI_GI=80 | — | 10.20% | 100% | 5.7% | 18.44M | -3.3% | ✅ PASS | sanity checks pass |
-| B0057 | m=3 y=30 n=500 NIFTY_=20/SBI_GI=80 | — | 10.88% | 100% | 5.2% | 22.15M | -8.1% | ✅ PASS | sanity checks pass |
-| B0058 | m=4 y=30 n=500 NIFTY_=20/SBI_GI=80 | — | 10.88% | 100% | 5.2% | 22.15M | -8.1% | ✅ PASS | sanity checks pass |
+| B0057 | m=3 y=30 n=500 NIFTY_=20/SBI_GI=80 | — | 10.44% | 100% | 5.5% | 19.64M | -7.1% | ✅ PASS | sanity checks pass |
+| B0058 | m=4 y=30 n=500 NIFTY_=20/SBI_GI=80 | — | 10.44% | 100% | 5.5% | 19.64M | -7.1% | ✅ PASS | sanity checks pass |
 | B0059 | m=1 y=30 n=500 NIFTY_=40/SBI_GI=60 | — | 11.24% | 100% | 6.2% | 24.40M | -10.3% | ✅ PASS | sanity checks pass |
-| B0060 | m=3 y=30 n=500 NIFTY_=40/SBI_GI=60 | — | 11.94% | 100% | 4.7% | 29.51M | -17.6% | ✅ PASS | sanity checks pass |
-| B0061 | m=4 y=30 n=500 NIFTY_=40/SBI_GI=60 | — | 11.94% | 100% | 4.7% | 29.51M | -17.6% | ✅ PASS | sanity checks pass |
+| B0060 | m=3 y=30 n=500 NIFTY_=40/SBI_GI=60 | — | 11.51% | 100% | 5.2% | 26.23M | -14.4% | ✅ PASS | sanity checks pass |
+| B0061 | m=4 y=30 n=500 NIFTY_=40/SBI_GI=60 | — | 11.51% | 100% | 5.2% | 26.23M | -14.4% | ✅ PASS | sanity checks pass |
 | B0062 | m=1 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.22% | 100% | 6.5% | 31.75M | -17.5% | ✅ PASS | sanity checks pass |
-| B0063 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.81% | 100% | 4.0% | 37.15M | -30.4% | ✅ PASS | sanity checks pass |
-| B0064 | m=4 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.81% | 100% | 4.0% | 37.15M | -30.4% | ✅ PASS | sanity checks pass |
+| B0063 | m=3 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.34% | 100% | 4.5% | 32.78M | -23.9% | ✅ PASS | sanity checks pass |
+| B0064 | m=4 y=30 n=500 NIFTY_=60/SBI_GI=40 | — | 12.34% | 100% | 4.5% | 32.78M | -23.9% | ✅ PASS | sanity checks pass |
 | B0065 | m=1 y=30 n=500 NIFTY_=80/SBI_GI=19 | — | 13.17% | 100% | 6.5% | 40.87M | -25.7% | ✅ PASS | sanity checks pass |
-| B0066 | m=3 y=30 n=500 NIFTY_=80/SBI_GI=19 | — | 13.17% | 100% | 3.0% | 40.89M | -44.4% | ✅ PASS | sanity checks pass |
-| B0067 | m=4 y=30 n=500 NIFTY_=80/SBI_GI=19 | — | 13.17% | 100% | 3.0% | 40.89M | -44.4% | ✅ PASS | sanity checks pass |
+| B0066 | m=3 y=30 n=500 NIFTY_=80/SBI_GI=19 | — | 13.03% | 100% | 4.0% | 39.40M | -33.8% | ✅ PASS | sanity checks pass |
+| B0067 | m=4 y=30 n=500 NIFTY_=80/SBI_GI=19 | — | 13.03% | 100% | 4.0% | 39.40M | -33.8% | ✅ PASS | sanity checks pass |
 | B0068 | m=1 y=30 n=500 NIFTY_50=100% | — | 15.12% | 100% | 2.7% | 68.38M | -56.9% | ✅ PASS | sanity checks pass |
-| B0069 | m=3 y=30 n=500 NIFTY_50=100% | — | 12.88% | 100% | 1.5% | 37.93M | -58.5% | ✅ PASS | sanity checks pass |
-| B0070 | m=4 y=30 n=500 NIFTY_50=100% | — | 12.88% | 100% | 1.5% | 37.93M | -58.5% | ✅ PASS | sanity checks pass |
+| B0069 | m=3 y=30 n=500 NIFTY_50=100% | — | 13.32% | 100% | 3.5% | 42.52M | -43.2% | ✅ PASS | sanity checks pass |
+| B0070 | m=4 y=30 n=500 NIFTY_50=100% | — | 13.32% | 100% | 3.5% | 42.52M | -43.2% | ✅ PASS | sanity checks pass |
 
 ### Group L_short_history (6 tests)
 

@@ -116,6 +116,7 @@ class MonteCarloConfig:
     cashflow: Optional[CashFlowConfig] = None
 
     # ── Tax ────────────────────────────────────────────────────────────
+    # Tax logic is not yet implemented; setting tax_enabled=True raises at run().
     tax_enabled: bool = False
     tax_rates: dict = field(default_factory=dict)
 
@@ -451,20 +452,20 @@ class MonteCarloSimulation:
         """Model=4: Parametric returns with risk-free rate."""
         cfg = self.config
         means, stds = self._get_asset_means_stds()
-        n_assets = len(means)
+        corr = self._get_correlation()
 
         # Time series model selection
         if cfg.time_series_model == 3:
-            # GARCH model
+            # GARCH model — now honors cross-asset correlations
             sampler = GARCHSampler(
                 mean_returns=means,
                 initial_vol=stds,
+                correlation=corr,
                 seed=cfg.seed,
             )
             return sampler.generate_path(cfg.years, cfg.simulations)
         else:
             # Normal (default for Forecasted mode)
-            corr = self._get_correlation()
             cov = corr * np.outer(stds, stds)
             sampler = NormalSampler(means, cov, seed=cfg.seed)
             return sampler.generate_path(cfg.years, cfg.simulations)
@@ -541,7 +542,12 @@ class MonteCarloSimulation:
                 amt = abs(cf_schedule[m])
                 if amt > 0:
                     total_now = asset_bal.sum(axis=1)
-                    ratio = np.where(total_now > 0, np.maximum(0, total_now - amt) / total_now, 0)
+                    ratio = np.divide(
+                        np.maximum(0.0, total_now - amt),
+                        total_now,
+                        out=np.zeros_like(total_now),
+                        where=total_now > 0,
+                    )
                     asset_bal = asset_bal * ratio[:, None]
             elif cf_type in (1, 2, 8, 9) and cf_schedule[m] != 0:
                 # Contribution (+) or withdrawal (-) as fixed amount
@@ -552,10 +558,13 @@ class MonteCarloSimulation:
                 else:
                     # Withdrawal: subtract, preserving current proportions
                     total_now = asset_bal.sum(axis=1)
-                    withdraw_amt = -amt  # positive
-                    ratio = np.where(total_now > 0,
-                                     np.maximum(0, total_now - withdraw_amt) / total_now,
-                                     0)
+                    withdraw_amt = -amt
+                    ratio = np.divide(
+                        np.maximum(0.0, total_now - withdraw_amt),
+                        total_now,
+                        out=np.zeros_like(total_now),
+                        where=total_now > 0,
+                    )
                     asset_bal = asset_bal * ratio[:, None]
 
             # Clamp to zero
@@ -626,6 +635,11 @@ class MonteCarloSimulation:
     def run(self) -> "MonteCarloResults":
         """Execute the Monte Carlo simulation."""
         cfg = self.config
+        if cfg.tax_enabled:
+            raise NotImplementedError(
+                "Tax logic is not yet wired into the simulation engine. "
+                "Set tax_enabled=False or open a feature request."
+            )
         codes = [a for a, _ in cfg.assets]
 
         print(f"Generating {cfg.simulations:,} simulations × {cfg.years} years × {len(codes)} assets...")
@@ -778,24 +792,39 @@ class MonteCarloResults:
         drawdowns = (self.balance_paths - peaks) / np.maximum(peaks, 1e-9)
         sim_max_dds = drawdowns.min(axis=1)
 
-        # Sharpe (vectorized)
+        # Sharpe (vectorized, no div-by-zero warnings)
         rf_monthly = cfg.risk_free_rate / 12
         pr_mean = pr.mean(axis=1)
         pr_std = pr.std(axis=1)
-        sim_sharpes = np.where(pr_std > 0, (pr_mean - rf_monthly) / pr_std * np.sqrt(12), 0.0)
+        sim_sharpes = np.divide(
+            (pr_mean - rf_monthly) * np.sqrt(12),
+            pr_std,
+            out=np.zeros_like(pr_mean),
+            where=pr_std > 0,
+        )
 
         # Sortino using standard TDD (target = 0)
-        downside = np.maximum(0.0, -pr)  # max(0, target-r) with target=0
+        downside = np.maximum(0.0, -pr)
         dsd = np.sqrt((downside ** 2).mean(axis=1))
-        sim_sortinos = np.where(dsd > 0, (pr_mean - rf_monthly) / dsd * np.sqrt(12), np.nan)
+        sim_sortinos = np.divide(
+            (pr_mean - rf_monthly) * np.sqrt(12),
+            dsd,
+            out=np.full_like(pr_mean, np.nan),
+            where=dsd > 0,
+        )
 
         # Real returns — use per-sim inflation (average annualized)
         if self.inflation_paths is not None and cfg.inflation_adjusted:
-            infl_monthly_mean = self.inflation_paths[:, :n_months_used].mean(axis=1)
-            infl_annual = (1 + infl_monthly_mean) ** 12 - 1  # per sim
+            # Clamp monthly inflation to sane range to avoid overflow
+            # (extreme parametric draws can produce >|100%| monthly rates)
+            clamped = np.clip(self.inflation_paths[:, :n_months_used], -0.02, 0.05)
+            infl_monthly_mean = clamped.mean(axis=1)
+            infl_annual = (1 + infl_monthly_mean) ** 12 - 1
             # Fisher: real = (1 + nominal) / (1 + infl) - 1
             real_ann_returns = (1 + sim_ann_returns) / (1 + infl_annual) - 1
-            real_finals = final_balances / (1 + infl_annual) ** n_full_years
+            # Guard: (1 + infl_annual) must be > 0
+            infl_growth = np.maximum(1 + infl_annual, 1e-6) ** n_full_years
+            real_finals = final_balances / infl_growth
         else:
             real_ann_returns = sim_ann_returns
             real_finals = final_balances

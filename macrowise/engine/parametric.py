@@ -58,26 +58,25 @@ class NormalSampler:
     def generate_path(
         self, n_years: int, n_sims: int
     ) -> np.ndarray:
-        """
-        Generate full return paths.
+        """Generate correlated monthly return paths.
+
+        Draws directly from multivariate N(monthly_mean, monthly_cov) — one
+        independent draw per (sim, month). Correctly preserves the target
+        annual variance when 12 months are compounded, without the double-
+        counting variance inflation that arises when annual is drawn first
+        and then noise is added per month.
 
         Returns
         -------
-        ndarray of shape (n_sims, n_years * 12, n_assets)
+        ndarray, shape (n_sims, n_years * 12, n_assets)
         """
-        all_returns = []
-        for _ in range(n_years):
-            annual = self.annual_returns(n_sims)  # (n_sims, n_assets)
-            monthly = annual[:, np.newaxis, :] / 12  # (n_sims, 1, n_assets)
-            # Spread across 12 months with some noise
-            monthly_noise = self._rng.normal(
-                0, np.sqrt(np.diag(self.cov) / 12),
-                size=(n_sims, 12, self.n_assets)
-            )
-            month_returns = monthly + monthly_noise
-            all_returns.append(month_returns)
-
-        return np.concatenate(all_returns, axis=1)
+        n_months = n_years * 12
+        monthly_mean = self.mean / 12
+        monthly_cov = self.cov / 12
+        draws = self._rng.multivariate_normal(
+            monthly_mean, monthly_cov, size=(n_sims, n_months)
+        )
+        return draws  # (n_sims, n_months, n_assets)
 
 
 class FatTailedSampler:
@@ -150,42 +149,44 @@ class FatTailedSampler:
 
 
 class GARCHSampler:
-    """
-    GARCH(1,1) return sampler for time-series mode.
+    """GARCH(1,1) return sampler with cross-asset correlation.
 
-    Captures volatility clustering — periods of high volatility
-    tend to be followed by high volatility, and vice versa.
+    Captures volatility clustering. Correlations across assets are applied
+    per-month via Cholesky decomposition of the correlation matrix.
+
+    Long-run monthly variance floor = omega / (1 - alpha - beta). Set
+    omega automatically from initial_vol if user passes omega=None.
     """
 
     def __init__(
         self,
         mean_returns: np.ndarray,
         initial_vol: np.ndarray,
-        omega: float = 1e-6,
+        omega: float | None = None,
         alpha: float = 0.08,
         beta: float = 0.90,
+        correlation: np.ndarray | None = None,
         seed: int | None = None,
     ):
-        """
-        Parameters
-        ----------
-        mean_returns : ndarray
-            Annual mean returns.
-        initial_vol : ndarray
-            Initial annualized volatilities.
-        omega : float
-            GARCH constant term (long-run variance floor).
-        alpha : float
-            ARCH parameter (sensitivity to recent shocks).
-        beta : float
-            GARCH parameter (persistence).
-        """
         self.mean = np.asarray(mean_returns, dtype=float)
         self.initial_vol = np.asarray(initial_vol, dtype=float)
-        self.omega = omega
+        if not (0 <= alpha < 1 and 0 <= beta < 1 and alpha + beta < 1):
+            raise ValueError(
+                f"GARCH requires 0 <= alpha < 1, 0 <= beta < 1, alpha + beta < 1 "
+                f"(got alpha={alpha}, beta={beta})"
+            )
         self.alpha = alpha
         self.beta = beta
+        # Auto-derive omega so long-run monthly variance ≈ (initial_vol/sqrt(12))^2
+        target_monthly_var = (self.initial_vol / np.sqrt(12)) ** 2
+        self.omega = (
+            omega if omega is not None
+            else target_monthly_var * (1 - alpha - beta)
+        )
         self.n_assets = len(mean_returns)
+        # Cholesky for cross-asset correlation
+        corr = correlation if correlation is not None else np.eye(self.n_assets)
+        self.L = np.linalg.cholesky(np.asarray(corr, dtype=float))
         self._rng = np.random.default_rng(seed)
 
     def set_seed(self, seed: int | None) -> None:
@@ -194,32 +195,31 @@ class GARCHSampler:
     def generate_path(
         self, n_years: int, n_sims: int
     ) -> np.ndarray:
-        """Generate GARCH-filtered return paths."""
+        """Generate GARCH-filtered return paths with cross-asset correlation."""
         n_months = n_years * 12
         monthly_mean = self.mean / 12
         monthly_vol = self.initial_vol / np.sqrt(12)
 
         returns = np.zeros((n_sims, n_months, self.n_assets))
         sigma2 = np.zeros((n_sims, n_months, self.n_assets))
-
-        # Initialize variance
+        # Initialize variance at long-run level
         sigma2[:, 0, :] = monthly_vol ** 2
+        # omega broadcast per asset (support scalar or array)
+        omega_arr = np.broadcast_to(self.omega, (self.n_assets,))
 
         for t in range(n_months):
             if t > 0:
-                # GARCH(1,1): sigma^2 = omega + alpha * r^2_{t-1} + beta * sigma^2_{t-1}
-                prev_ret = returns[:, t - 1, :] ** 2
+                prev_ret_sq = (returns[:, t - 1, :] - monthly_mean) ** 2
                 sigma2[:, t, :] = (
-                    self.omega
-                    + self.alpha * prev_ret
+                    omega_arr
+                    + self.alpha * prev_ret_sq
                     + self.beta * sigma2[:, t - 1, :]
                 )
 
-            # Draw returns from normal with current volatility
-            sigma = np.sqrt(np.maximum(sigma2[:, t, :], 1e-10))
-            returns[:, t, :] = (
-                self._rng.standard_normal((n_sims, self.n_assets)) * sigma
-                + monthly_mean
-            )
+            sigma = np.sqrt(np.maximum(sigma2[:, t, :], 1e-12))
+            # Correlated standard-normal draws
+            z = self._rng.standard_normal((n_sims, self.n_assets))
+            correlated_z = z @ self.L.T
+            returns[:, t, :] = correlated_z * sigma + monthly_mean
 
         return returns
