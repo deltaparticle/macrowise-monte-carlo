@@ -598,6 +598,7 @@ class MonteCarloResults:
         self.median_final_balance: float = 0.0
         self.swr: float = 0.0
         self.pwr: float = 0.0
+        self.sim_cagrs: np.ndarray = np.zeros(0)
 
     def _compute_all(self) -> None:
         """Compute all result tables."""
@@ -633,7 +634,8 @@ class MonteCarloResults:
         initial = cfg.initial_balance
 
         # Compute per-simulation CAGR and returns
-        sim_cagrs = np.zeros(self.n_sims)
+        # Compute per-simulation CAGR and returns
+        self.sim_cagrs = np.zeros(self.n_sims)
         sim_ann_returns = np.zeros(self.n_sims)
         sim_max_dds = np.zeros(self.n_sims)
         sim_sharpes = np.zeros(self.n_sims)
@@ -643,14 +645,20 @@ class MonteCarloResults:
         rf_monthly = cfg.risk_free_rate / 12
 
         for sim in range(self.n_sims):
-            # CAGR
-            final = final_balances[sim]
-            if final > 0 and initial > 0:
-                sim_cagrs[sim] = (final / initial) ** (1 / cfg.years) - 1
-
             # Annual returns
             ann_rets = (1 + port_returns[sim]).reshape(-1, 12).prod(axis=1) - 1
             sim_ann_returns[sim] = ann_rets.mean()
+
+            # CAGR - use geometric mean of annual returns (TWR-based, NOT affected by cashflows)
+            valid = ann_rets > -1
+            final = final_balances[sim]
+            initial = cfg.initial_balance
+            if valid.sum() > 2 and final > 0 and initial > 0:
+                # Geometric mean of annual returns = true portfolio CAGR
+                valid_rets = ann_rets[valid]
+                self.sim_cagrs[sim] = np.prod(1 + valid_rets) ** (1 / len(valid_rets)) - 1
+            else:
+                self.sim_cagrs[sim] = 0.0
 
             # Max drawdown from balance
             bal = self.balance_paths[sim]
@@ -677,7 +685,7 @@ class MonteCarloResults:
 
         # Inflation adjustment
         inflation = cfg.inflation_mean if cfg.inflation_adjusted else 0.0
-        real_cagrs = (1 + sim_cagrs) / (1 + inflation) - 1
+        real_cagrs = (1 + self.sim_cagrs) / (1 + inflation) - 1
         real_finals = final_balances / (1 + inflation) ** cfg.years
 
         # Build table
@@ -848,4 +856,6 @@ class MonteCarloResults:
                 (self.median_final_balance / self.config.initial_balance)
                 ** (1 / self.config.years) - 1
             )
-            self.median_cagr = median_cagr
+            self.median_cagr_with_cashflows = median_cagr
+            # Use the TWR-based CAGR as primary metric
+            self.median_cagr = np.median(self.sim_cagrs)
