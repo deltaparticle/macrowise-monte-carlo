@@ -109,6 +109,8 @@ class FatTailedSampler:
         """
         self.mean = np.asarray(mean_returns, dtype=float)
         self.std = np.asarray(std_returns, dtype=float)
+        if dof <= 2:
+            raise ValueError(f"FatTailedSampler requires dof > 2 (got {dof}); variance is undefined.")
         self.dof = dof
         self.correlation = correlation
         self.n_assets = len(mean_returns)

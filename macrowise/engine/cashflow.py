@@ -142,29 +142,33 @@ class CashFlowEngine:
         month: int,
         sign: float = 1.0,
     ) -> float:
-        """Compute the cashflow amount at a given month index."""
+        """Compute the cashflow amount at a given month index.
+
+        Honors `timing` ('beginning' vs 'end' of period). 'end' fires at
+        m == step-1 mod step; 'beginning' fires at m == 0 mod step.
+        """
         cfg = self.config
         year = month / 12
         amount = cfg.base_amount
 
-        # Apply growth
         if cfg.growth_rate > 0:
             amount *= (1 + cfg.growth_rate) ** year
 
-        # Apply inflation adjustment
         if cfg.inflation_adjusted and cfg.adjustment_type != 4:
             amount *= (1 + cfg.inflation_mean) ** year
 
-        # Per-period amount
         per_period = amount / cfg.periods_per_year
 
-        # Check if this is a cashflow month
-        if cfg.frequency == "monthly":
+        # Determine step size and offset per frequency + timing
+        step_map = {"monthly": 1, "quarterly": 3, "annual": 12}
+        step = step_map.get(cfg.frequency, 12)
+        offset = 0 if cfg.timing == "beginning" else (step - 1)
+
+        if step == 1:
             return sign * per_period
-        elif cfg.frequency == "quarterly":
-            return sign * per_period if month % 3 == 0 else 0.0
-        else:
-            return sign * per_period if month % 12 == 0 else 0.0
+        if month % step == offset:
+            return sign * per_period
+        return 0.0
 
     def _contribution_schedule(
         self, n_months: int, sign: float = 1.0
@@ -180,21 +184,24 @@ class CashFlowEngine:
         return self._contribution_schedule(n_months, sign=sign)
 
     def _fixed_with_pct_change_schedule(self, n_months: int, sign: float = -1.0) -> np.ndarray:
+        """Fixed amount with annual % change (PV type 8 = withdrawal, type 9 = contribution).
+
+        Honors `inflation_adjusted` and `timing` like other schedule methods.
         """
-        Fixed amount with annual percentage change (PV type 8 = withdrawal, type 9 = contribution).
-        The amount grows/shrinks by pct_change each year.
-        """
+        cfg = self.config
         result = np.zeros(n_months)
+        step_map = {"monthly": 1, "quarterly": 3, "annual": 12}
+        step = step_map.get(cfg.frequency, 12)
+        offset = 0 if cfg.timing == "beginning" else (step - 1)
+
         for m in range(n_months):
             year = m / 12
-            amount = self.config.base_amount * (1 + self.config.pct_change) ** year
-            per_period = amount / self.config.periods_per_year
-            if self.config.frequency == "monthly":
+            amount = cfg.base_amount * (1 + cfg.pct_change) ** year
+            if cfg.inflation_adjusted:
+                amount *= (1 + cfg.inflation_mean) ** year
+            per_period = amount / cfg.periods_per_year
+            if step == 1 or m % step == offset:
                 result[m] = sign * per_period
-            elif self.config.frequency == "quarterly":
-                result[m] = sign * per_period if m % 3 == 0 else 0.0
-            else:
-                result[m] = sign * per_period if m % 12 == 0 else 0.0
         return result
 
     def _fixed_pct_schedule(self, n_months: int) -> np.ndarray:
@@ -206,35 +213,28 @@ class CashFlowEngine:
         return np.full(n_months, self.config.withdrawal_percentage / 100.0)
 
     def _life_expectancy_schedule(self, n_months: int) -> np.ndarray:
+        """Life-expectancy-based withdrawal (RMD style).
+
+        Withdrawal% = 1 / remaining years of life.
+        Annual amount = base_amount * withdrawal_pct, spread evenly across 12 months.
         """
-        Life expectancy based withdrawal (RMD style).
-        Withdrawal % = 1 / remaining years of life.
-        """
-        # Simplified: use IRS-style life expectancy tables
         result = np.zeros(n_months)
         age = self.config.current_age
 
+        current_le = self._life_expectancy(age)  # cached per year
         for m in range(n_months):
-            if m % 12 == 0:  # Annual withdrawal
-                year = m // 12
+            year = m // 12
+            if m % 12 == 0:
                 current_age = age + year
-
-                # IRS Uniform Lifetime Table (simplified)
-                le_years = self._life_expectancy(current_age)
-                if le_years > 0:
-                    withdrawal_pct = 1.0 / le_years
-                    annual_amount = self.config.base_amount * withdrawal_pct
-                    result[m] = -annual_amount / 12  # Monthly withdrawal
-
+                current_le = self._life_expectancy(current_age)
+            if current_le > 0:
+                monthly_amount = (self.config.base_amount / current_le) / 12
+                result[m] = -monthly_amount
         return result
 
     @staticmethod
-    def _life_expectancy(age: int) -> int:
-        """
-        IRS-style life expectancy (simplified).
-        For Indian implementation, use SRS life expectancy data.
-        """
-        # Simplified IRS table; for production, use SRS data
+    def _life_expectancy(age: int) -> float:
+        """IRS-style life expectancy (years remaining) — returns float."""
         le_table = {
             30: 53.1, 35: 48.5, 40: 43.9, 45: 39.2, 50: 34.6,
             55: 30.0, 60: 25.5, 65: 21.2, 70: 17.0, 75: 13.1,
@@ -242,32 +242,33 @@ class CashFlowEngine:
         }
         ages = sorted(le_table.keys())
         if age <= ages[0]:
-            return le_table[ages[0]]
+            return float(le_table[ages[0]])
         if age >= ages[-1]:
-            return le_table[ages[-1]]
-
-        # Linear interpolation
+            return float(le_table[ages[-1]])
         for i in range(len(ages) - 1):
             if ages[i] <= age < ages[i + 1]:
                 frac = (age - ages[i]) / (ages[i + 1] - ages[i])
-                return int(le_table[ages[i]] * (1 - frac) + le_table[ages[i + 1]] * frac)
-        return le_table[ages[-1]]
+                return float(le_table[ages[i]] * (1 - frac) + le_table[ages[i + 1]] * frac)
+        return float(le_table[ages[-1]])
 
     def _rolling_average_schedule(self, n_months: int) -> np.ndarray:
+        """Rolling-average spending rule (PV type=5).
+
+        Requires balance path to compute — cannot be generated as a schedule.
+        Returns zeros with a warning; the balance-loop should compute this
+        dynamically. For now, unsupported.
         """
-        Rolling average spending rule (PV type=5).
-        Withdrawal = avg(portfolio balance over last N years) * withdrawal_pct.
-        """
-        result = np.zeros(n_months)
-        return result  # Simplified — needs balance path to compute properly
+        raise NotImplementedError(
+            "Cashflow type 5 (rolling average) requires balance-path-aware computation "
+            "which is not currently implemented. Use type 3 (fixed %) as a substitute."
+        )
 
     def _geometric_schedule(self, n_months: int) -> np.ndarray:
-        """
-        Guyton-Klinger geometric spending rule (PV type=6).
-        Includes capital preservation, inflation, and market return adjustments.
-        """
-        result = np.zeros(n_months)
-        return result  # Simplified — needs balance path to compute properly
+        """Guyton-Klinger geometric spending rule (PV type=6). Unsupported."""
+        raise NotImplementedError(
+            "Cashflow type 6 (Guyton-Klinger) requires balance-path-aware computation "
+            "which is not currently implemented. Use type 8 (fixed + pct change) as a substitute."
+        )
 
 
 def create_sip(

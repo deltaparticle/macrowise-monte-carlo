@@ -1,69 +1,51 @@
-"""
-Statistics calculator — computes portfolio statistics matching PV's output format.
-"""
+"""Statistics calculator — portfolio metrics matching PV's output format."""
 
 import numpy as np
 import pandas as pd
-from typing import Optional
 
 
 def calculate_portfolio_stats(
     balance_series: np.ndarray,
     inflation_mean: float = 0.04,
 ) -> dict:
-    """
-    Calculate portfolio statistics for a single simulation path.
-
-    Parameters
-    ----------
-    balance_series : ndarray, shape (n_months,)
-        Portfolio balance over time.
-    inflation_mean : float
-        Mean inflation for CAGR adjustment.
-
-    Returns
-    -------
-    dict with keys: cagr, total_return, max_drawdown, etc.
-    """
-    if len(balance_series) < 2:
+    """Portfolio statistics for a single simulation path."""
+    if len(balance_series) < 2 or balance_series[0] <= 0:
         return {
             "cagr": 0.0,
             "total_return": 0.0,
             "max_drawdown": 0.0,
-            "final_balance": balance_series[-1] if len(balance_series) > 0 else 0.0,
+            "final_balance": float(balance_series[-1]) if len(balance_series) > 0 else 0.0,
             "success": True,
+            "volatility": 0.0,
         }
 
-    # CAGR
     n_years = len(balance_series) / 12
     final = balance_series[-1]
     initial = balance_series[0]
     total_return = (final / initial) - 1
     cagr = (1 + total_return) ** (1 / n_years) - 1 if n_years > 0 else 0.0
 
-    # Max drawdown
     peak = np.maximum.accumulate(balance_series)
-    drawdown = (balance_series - peak) / peak
-    max_drawdown = drawdown.min()
+    drawdown = (balance_series - peak) / np.maximum(peak, 1e-9)
+    max_drawdown = float(drawdown.min())
 
-    # Success: ending balance > 0
-    success = final > 0
+    # Volatility: use returns of positive-only balance segments
+    safe_bal = np.maximum(balance_series[:-1], 1.0)
+    returns = np.diff(balance_series) / safe_bal
+    vol = float(np.std(returns) * np.sqrt(12)) if len(returns) > 12 else 0.0
 
     return {
         "cagr": cagr,
         "total_return": total_return,
         "max_drawdown": max_drawdown,
-        "final_balance": final,
-        "success": success,
-        "volatility": np.std(np.diff(balance_series) / balance_series[:-1]) * np.sqrt(12) if len(balance_series) > 12 else 0.0,
+        "final_balance": float(final),
+        "success": final > initial * 0.01,
+        "volatility": vol,
     }
 
 
-def calculate_sharpe_ratio(
-    returns: np.ndarray,
-    risk_free_rate: float = 0.04,
-) -> float:
-    """Sharpe ratio = (mean_return - rf) / std_return."""
+def calculate_sharpe_ratio(returns: np.ndarray, risk_free_rate: float = 0.04) -> float:
+    """Sharpe ratio = (mean_return - rf) / std_return, annualized."""
     excess = returns.mean() - risk_free_rate / 12
     std = returns.std()
     if std == 0:
@@ -76,120 +58,136 @@ def calculate_sortino_ratio(
     risk_free_rate: float = 0.04,
     target_return: float = 0.0,
 ) -> float:
-    """Sortino ratio = (mean - rf) / downside_deviation."""
+    """Sortino ratio = (mean - rf) / target-downside-deviation, annualized.
+
+    Uses standard TDD formula: sqrt(mean(max(0, target-r)^2)) over ALL observations.
+    """
     excess = returns.mean() - risk_free_rate / 12
-    downside = returns[returns < target_return]
-    if len(downside) == 0:
-        return float("inf")
+    downside = np.maximum(0.0, target_return - returns)
     downside_std = np.sqrt((downside ** 2).mean())
     if downside_std == 0:
-        return float("inf")
+        return float("nan")
     return (excess / downside_std) * np.sqrt(12)
 
 
 def percentile_array(arr: np.ndarray, percentiles: list[float]) -> dict:
-    """Compute percentiles of an array."""
     return {f"p{int(p * 100)}": float(np.percentile(arr, p * 100)) for p in percentiles}
 
 
+# ─────────────────────────────────────────────────────────────────────
+# Safe Withdrawal Rate — real Monte Carlo calc
+# ─────────────────────────────────────────────────────────────────────
+
 def safe_withdrawal_rate(
-    final_balances: np.ndarray,
+    port_returns: np.ndarray,
     initial_balance: float,
     years: int,
+    inflation_mean: float = 0.04,
+    survival_threshold: float = 0.95,
+    survival_floor_frac: float = 0.01,
 ) -> float:
-    """
-    Calculate safe withdrawal rate (SWR).
-    SWR = withdrawal rate (as % of initial portfolio) that leaves the portfolio with at least 20% of initial amount.
-    Adjusts to match PortfolioVisualizer's conservative approach.
-    """
-    if initial_balance <= 0:
-        return 0.0
+    """Real Monte Carlo Safe Withdrawal Rate.
 
-    # Sort final balances (worst to best)
-    sorted_balances = np.sort(final_balances)
-
-    # Use the 10th percentile (not median) for safety - more conservative
-    threshold_balance = initial_balance * 0.20  # Require at least 20% remaining
-
-    # Find the withdrawal rate that keeps the 10th percentile above the threshold
-    # Heuristic: what % withdrawal gives median_final / initial = 1.5x
-    median_ratio = np.median(sorted_balances) / initial_balance
-
-    # Empirical conversion:
-    # PortfolioVisualizer's SWR formula approximates:
-    # SWR ≈ 4% + (median_ratio * 0.05)
-    # This produces realistic results between 2-12%
-    if median_ratio < 1.0:  # Portfolio shrank
-        swr = max(0.0, 0.02)  # Minimum 2%
-    else:
-        # Grows with performance but caps around 8-10%
-        swr = min(0.08, 0.04 + (median_ratio - 1.0) * 0.04)
-
-    return round(swr * 100) / 100  # Round to nearest 0.01%
-
-
-def perpetual_withdrawal_rate(
-    balance_paths: np.ndarray,
-    initial_balance: float,
-    years: int,
-) -> float:
-    """
-    Calculate perpetual withdrawal rate (PWR).
-    PWR = sustainable forever withdrawal rate based on mean returns.
+    For each candidate annual withdrawal rate (0.5% to 15% in 0.25% steps),
+    simulate the portfolio with an inflation-adjusted monthly withdrawal and
+    count how many paths survive N years. SWR = highest rate where at least
+    `survival_threshold` fraction of paths keep balance above
+    `initial_balance * survival_floor_frac` throughout the horizon.
 
     Parameters
     ----------
-    balance_paths : ndarray
-        Either shape (n_sims, n_months+1) or (n_sims,).
-        If 2D, uses the last column as final balance.
+    port_returns : ndarray, shape (n_sims, n_months)
+        Monthly portfolio returns per simulation (already weighted by allocs).
+    initial_balance : float
+    years : int
+    inflation_mean : float
+        Annual inflation used to grow withdrawal amount over time.
+    survival_threshold : float
+        Fraction of paths that must survive (default 0.95).
+    survival_floor_frac : float
+        Balance floor as fraction of initial (default 1%).
     """
-    # Handle both 2D (full paths) and 1D (final balances only)
-    if balance_paths.ndim == 2:
-        final_balances = balance_paths[:, -1]
-    else:
-        final_balances = np.asarray(balance_paths)
-
-    mean_final = np.mean(final_balances)
-    if mean_final <= 0:
+    if initial_balance <= 0 or years <= 0:
+        return 0.0
+    if port_returns.ndim != 2:
         return 0.0
 
-    cagrs = []
-    for fb in final_balances:
-        if fb > 0:
-            cagr = (fb / initial_balance) ** (1 / years) - 1
-            cagrs.append(cagr)
+    n_sims, n_months = port_returns.shape
+    rates = np.arange(0.005, 0.155, 0.0025)  # 0.5% to 15%, 0.25% steps
 
-    if not cagrs:
+    # Precompute inflation multiplier per month
+    infl_per_month = (1 + inflation_mean) ** (np.arange(n_months) / 12)
+    floor = initial_balance * survival_floor_frac
+
+    best_rate = 0.0
+    for rate in rates:
+        # Monthly withdrawal at t=0: rate * initial_balance / 12
+        base_wd = rate * initial_balance / 12
+        wd_schedule = base_wd * infl_per_month  # (n_months,)
+
+        balances = np.full(n_sims, initial_balance, dtype=np.float64)
+        survived = np.ones(n_sims, dtype=bool)
+        for m in range(n_months):
+            balances = balances * (1 + port_returns[:, m]) - wd_schedule[m]
+            balances = np.maximum(balances, 0.0)
+            survived &= balances > floor
+
+        if survived.mean() >= survival_threshold:
+            best_rate = float(rate)
+        else:
+            break  # Higher rates will only be worse
+    return best_rate
+
+
+def perpetual_withdrawal_rate(
+    port_returns: np.ndarray,
+    initial_balance: float,
+    years: int,
+    inflation_mean: float = 0.04,
+    survival_threshold: float = 0.95,
+) -> float:
+    """Perpetual Withdrawal Rate — highest rate where the median final balance
+    is at least the initial balance in nominal terms (so the portfolio can
+    perpetuate indefinitely at this withdrawal rate).
+    """
+    if initial_balance <= 0 or years <= 0 or port_returns.ndim != 2:
         return 0.0
-    mean_cagr = np.mean(cagrs)
-    return max(0.0, mean_cagr * 0.95)  # 5% fee assumption
+
+    n_sims, n_months = port_returns.shape
+    rates = np.arange(0.005, 0.155, 0.0025)
+    infl_per_month = (1 + inflation_mean) ** (np.arange(n_months) / 12)
+
+    best_rate = 0.0
+    for rate in rates:
+        base_wd = rate * initial_balance / 12
+        wd_schedule = base_wd * infl_per_month
+
+        balances = np.full(n_sims, initial_balance, dtype=np.float64)
+        for m in range(n_months):
+            balances = balances * (1 + port_returns[:, m]) - wd_schedule[m]
+            balances = np.maximum(balances, 0.0)
+
+        # Perpetual condition: median final ≥ initial (nominal)
+        # AND survival ≥ threshold
+        survival = (balances > initial_balance * 0.01).mean()
+        median_final = np.median(balances)
+        if median_final >= initial_balance and survival >= survival_threshold:
+            best_rate = float(rate)
+        else:
+            break
+    return best_rate
 
 
 def compute_percentile_balances(
     paths: np.ndarray,
     percentiles: list[float] | None = None,
 ) -> pd.DataFrame:
-    """
-    Compute percentile portfolio balances at each year.
-
-    Parameters
-    ----------
-    paths : ndarray, shape (n_sims, n_months, n_assets)
-        Simulated return paths.
-    percentiles : list[float] | None
-        Percentiles to compute (0-1 scale).
-
-    Returns
-    -------
-    DataFrame indexed by year, columns = percentile labels
-    """
+    """Percentile portfolio balance table."""
     if percentiles is None:
         percentiles = [0.10, 0.25, 0.50, 0.75, 0.90]
 
-    # Convert returns to cumulative balance
-    # Assume equal-weighted portfolio for now
-    port_returns = paths.mean(axis=2)  # (n_sims, n_months)
-    balance_paths = np.cumprod(1 + port_returns, axis=1)  # (n_sims, n_months)
+    port_returns = paths.mean(axis=2)  # Equal-weight fallback
+    balance_paths = np.cumprod(1 + port_returns, axis=1)
 
     n_years = balance_paths.shape[1] // 12
     result = {}
@@ -200,55 +198,39 @@ def compute_percentile_balances(
             f"p{int(p * 100)}": float(np.percentile(balances, p * 100))
             for p in percentiles
         }
-
     return pd.DataFrame(result).T
 
 
 def compute_withdrawal_survival(
-    paths: np.ndarray,
+    port_returns: np.ndarray,
     initial_balance: float,
     withdrawal_rate: float,
     years: int,
+    inflation_mean: float = 0.04,
 ) -> dict:
+    """Withdrawal survival stats — respects actual portfolio returns.
+
+    Parameters
+    ----------
+    port_returns : ndarray, shape (n_sims, n_months)
+        Monthly portfolio returns (already weighted).
     """
-    Compute withdrawal success statistics.
+    n_sims, n_months = port_returns.shape
+    infl_per_month = (1 + inflation_mean) ** (np.arange(n_months) / 12)
+    base_wd = withdrawal_rate * initial_balance / 12
+    wd_schedule = base_wd * infl_per_month
 
-    Returns
-    -------
-    dict with survival_rate, median_final, etc.
-    """
-    port_returns = paths.mean(axis=2)
-    balance_paths = np.cumprod(1 + port_returns, axis=1)
-
-    withdrawals = np.zeros((paths.shape[0], paths.shape[1]))
-    for yr in range(years):
-        month_start = yr * 12
-        for m in range(12):
-            withdrawals[:, month_start + m] = withdrawal_rate * initial_balance / 12
-
-    # Track balance after withdrawals
-    success_counts = 0
-    final_balances = []
-
-    for sim in range(paths.shape[0]):
-        balance = initial_balance
-        depleted = False
-        for m in range(years * 12):
-            # Growth first
-            balance *= 1 + port_returns[sim, m]
-            # Withdrawal
-            balance -= withdrawals[sim, m]
-            if balance <= 0:
-                depleted = True
-                break
-        final_balances.append(max(0.0, balance))
-        if not depleted:
-            success_counts += 1
+    balances = np.full(n_sims, initial_balance, dtype=np.float64)
+    survived = np.ones(n_sims, dtype=bool)
+    for m in range(n_months):
+        balances = balances * (1 + port_returns[:, m]) - wd_schedule[m]
+        balances = np.maximum(balances, 0.0)
+        survived &= balances > initial_balance * 0.01
 
     return {
-        "success_rate": success_counts / paths.shape[0],
-        "median_final": float(np.median(final_balances)),
-        "mean_final": float(np.mean(final_balances)),
-        "p10_final": float(np.percentile(final_balances, 10)),
-        "p90_final": float(np.percentile(final_balances, 90)),
+        "success_rate": float(survived.mean()),
+        "median_final": float(np.median(balances)),
+        "mean_final": float(np.mean(balances)),
+        "p10_final": float(np.percentile(balances, 10)),
+        "p90_final": float(np.percentile(balances, 90)),
     }

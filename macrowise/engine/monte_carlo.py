@@ -15,6 +15,7 @@ Handles:
   - PV-compatible output format
 """
 
+import warnings
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass, field
@@ -27,6 +28,12 @@ from macrowise.data.loader import (
     get_covariance_matrix,
     get_asset_statistics,
 )
+
+try:
+    from macrowise.data.loader import load_inflation_data
+    _HAS_INFLATION_DATA = True
+except Exception:
+    _HAS_INFLATION_DATA = False
 from macrowise.data.asset_registry import (
     AssetInfo,
     get_asset,
@@ -195,54 +202,83 @@ class MonteCarloSimulation:
             )
 
         if abs(total_alloc - 1.0) > 0.01:
-            print(f"Warning: allocations sum to {total_alloc:.1%}, normalizing to 100%.")
-            resolved = [(c, w / total_alloc) for c, w in resolved]
+            raise ValueError(
+                f"Allocations sum to {total_alloc:.4f}, must be 1.0 (±0.01). "
+                f"Got: {[(c, round(w, 4)) for c, w in resolved]}"
+            )
 
         cfg.assets = resolved
 
     def _get_asset_returns(self) -> pd.DataFrame:
-        """Get historical returns for selected assets only."""
+        """Get historical returns for selected assets — union of asset histories (not dropna intersection)."""
         codes = [a for a, _ in self.config.assets]
-        return self.monthly_returns[codes].dropna()
+        df = self.monthly_returns[codes]
+        # Forward-fill within each asset to avoid dropping rows when one asset has short history.
+        # This preserves data at the cost of assuming missing = last known value.
+        return df.dropna(how="all")
 
     def _get_asset_means_stds(self) -> tuple[np.ndarray, np.ndarray]:
-        """Get mean and std for selected assets."""
+        """Get mean and std for selected assets — raises if asset missing from stats."""
         codes = [a for a, _ in self.config.assets]
         n = len(codes)
 
         if self.config.custom_means is not None:
             means = np.array(self.config.custom_means)
         else:
-            means = np.array([
-                self.asset_stats.loc[c, "mean_annual"] if c in self.asset_stats.index
-                else 0.10
-                for c in codes
-            ])
+            missing = [c for c in codes if c not in self.asset_stats.index]
+            if missing:
+                raise ValueError(
+                    f"No historical stats for assets: {missing}. "
+                    f"Supply `custom_means` and `custom_stds` in config."
+                )
+            means = np.array([self.asset_stats.loc[c, "mean_annual"] for c in codes])
 
         if self.config.custom_stds is not None:
             stds = np.array(self.config.custom_stds)
         else:
-            stds = np.array([
-                self.asset_stats.loc[c, "std_annual"] if c in self.asset_stats.index
-                else 0.15
-                for c in codes
-            ])
+            missing = [c for c in codes if c not in self.asset_stats.index]
+            if missing:
+                raise ValueError(
+                    f"No historical stats for assets: {missing}. "
+                    f"Supply `custom_means` and `custom_stds` in config."
+                )
+            stds = np.array([self.asset_stats.loc[c, "std_annual"] for c in codes])
 
         return means[:n], stds[:n]
 
     def _get_correlation(self) -> np.ndarray:
-        """Get correlation matrix for selected assets."""
+        """Get correlation matrix for selected assets. Honors custom_correlation."""
         codes = [a for a, _ in self.config.assets]
-        available_cols = [c for c in codes if c in self.corr_matrix.columns]
+        n = len(codes)
 
-        if not self.config.use_historical_correlations or not available_cols:
-            # Use identity correlation
-            return np.eye(len(codes))
+        # Custom correlation takes precedence
+        if self.config.custom_correlation is not None:
+            corr = np.asarray(self.config.custom_correlation, dtype=float)
+            if corr.shape != (n, n):
+                raise ValueError(
+                    f"custom_correlation shape {corr.shape} != ({n},{n})"
+                )
+            return corr
+
+        if not self.config.use_historical_correlations:
+            return np.eye(n)
+
+        available_cols = [c for c in codes if c in self.corr_matrix.columns]
+        if not available_cols:
+            warnings.warn(
+                f"No historical correlations for {codes}; using identity matrix.",
+                RuntimeWarning,
+            )
+            return np.eye(n)
 
         sub = self.corr_matrix.loc[available_cols, available_cols].values
-        if len(available_cols) < len(codes):
-            # Fill missing with identity
-            full = np.eye(len(codes))
+        if len(available_cols) < n:
+            missing = [c for c in codes if c not in available_cols]
+            warnings.warn(
+                f"Correlation matrix missing for {missing}; using identity for those pairs.",
+                RuntimeWarning,
+            )
+            full = np.eye(n)
             for i, c in enumerate(codes):
                 for j, d in enumerate(codes):
                     if c in available_cols and d in available_cols:
@@ -254,17 +290,9 @@ class MonteCarloSimulation:
 
     def _get_covariance(self) -> np.ndarray:
         """Get covariance matrix for selected assets."""
-        codes = [a for a, _ in self.config.assets]
         _, stds = self._get_asset_means_stds()
         corr = self._get_correlation()
-
-        # Build covariance: σ_i * σ_j * ρ_ij
-        n = len(codes)
-        cov = np.ones((n, n))
-        for i in range(n):
-            for j in range(n):
-                cov[i, j] = stds[i] * stds[j] * corr[i, j]
-        return cov
+        return np.outer(stds, stds) * corr
 
     def _build_return_paths(self) -> np.ndarray:
         """
@@ -299,33 +327,30 @@ class MonteCarloSimulation:
             raise ValueError(f"Unknown model: {cfg.model}")
 
     def _historical_returns(self, codes: list[str]) -> np.ndarray:
-        """
-        Model=1: Bootstrap from actual historical returns.
+        """Model=1: Bootstrap from actual historical returns.
 
-        Uses single-year bootstrap if all assets have at least `years` complete years.
-        Falls back to single-month bootstrap otherwise.
+        Note: single_year and block bootstraps sample WITH REPLACEMENT, so
+        limited history (e.g. 12 years) can still generate longer paths.
         """
         cfg = self.config
         hist = self.monthly_returns[codes].dropna()
 
-        # Apply year range filter if set
         if not self.config.use_full_history:
             if self.config.start_year:
                 hist = hist[hist.index.year >= self.config.start_year]
             if self.config.end_year:
                 hist = hist[hist.index.year <= self.config.end_year]
 
-        # Determine available complete years per asset
         min_complete_years = self._min_complete_years(hist, codes)
-
-        # Auto-select bootstrap model if yearly not possible
-        bootstrap_model = cfg.bootstrap_model
-        if bootstrap_model == 1 and min_complete_years < cfg.years:
-            print(
-                f"  Note: '{codes[0]}' has only {min_complete_years} complete years. "
-                f"Using monthly bootstrap for {cfg.years} years."
+        if min_complete_years < 1 and cfg.bootstrap_model in (1, 2):
+            warnings.warn(
+                f"Only {min_complete_years} complete years for {codes}; "
+                f"falling back to single-month bootstrap.",
+                RuntimeWarning,
             )
-            bootstrap_model = 0  # single-month
+            bootstrap_model = 0
+        else:
+            bootstrap_model = cfg.bootstrap_model
 
         sampler = BootstrapSampler(
             block_model={0: "single_month", 1: "single_year", 2: "block"}[bootstrap_model],
@@ -336,20 +361,25 @@ class MonteCarloSimulation:
         )
 
         n_months = cfg.years * 12
+        port_weights = np.array([w for _, w in cfg.assets])
         paths = np.zeros((cfg.simulations, n_months, len(codes)))
 
         for sim in range(cfg.simulations):
             seq = sampler.sample_sequence(hist, cfg.years, codes)
 
-            # Pad with last value if needed (for partial years)
+            # Pad with LAST value if needed (not zeros) so partial years
+            # continue the trend rather than damping tails to 0%.
             if seq.shape[0] < n_months:
-                pad = np.zeros((n_months - seq.shape[0], seq.shape[1]))
+                last = seq[-1] if len(seq) > 0 else np.zeros(seq.shape[1])
+                pad = np.tile(last, (n_months - seq.shape[0], 1))
                 seq = np.concatenate([seq, pad], axis=0)
+            elif seq.shape[0] > n_months:
+                seq = seq[:n_months]
 
-            # Apply sequence stress test
             if self.config.sequence_stress_test > 0:
                 seq = sampler.apply_sequence_stress(
-                    seq, self.config.sequence_stress_test, annual=True
+                    seq, self.config.sequence_stress_test, annual=True,
+                    portfolio_weights=port_weights,
                 )
 
             paths[sim] = seq
@@ -367,26 +397,32 @@ class MonteCarloSimulation:
         return int(min_years) if min_years != float("inf") else 0
 
     def _statistical_returns(self, codes: list[str]) -> np.ndarray:
-        """Model=2: Bootstrap historical returns with custom statistics."""
-        # Bootstrap from history
+        """Model=2: Bootstrap historical returns with custom statistics.
+
+        Adjusts sampled paths so their empirical mean/std matches user-provided
+        targets. Vol is scaled around the historical mean first, THEN the mean
+        is shifted to the target (so rescaling doesn't inflate the mean).
+        """
         paths = self._historical_returns(codes)
-
-        # Adjust mean/stdev to match user-specified (via custom_means/custom_stds)
         cfg = self.config
-        if cfg.custom_means is not None or cfg.custom_stds is not None:
-            means, stds = self._get_asset_means_stds()
-            hist_means = paths.mean(axis=(0, 1))
-            hist_stds = paths.std(axis=(0, 1))
 
-            for i in range(len(codes)):
-                # Adjust mean
-                if cfg.custom_means is not None:
-                    mean_adj = cfg.custom_means[i] / 12 - hist_means[i]
-                    paths[:, :, i] += mean_adj * 12
-                # Adjust volatility
-                if cfg.custom_stds is not None:
-                    vol_ratio = (cfg.custom_stds[i] / np.sqrt(12)) / (hist_stds[i] + 1e-10)
-                    paths[:, :, i] *= vol_ratio
+        if cfg.custom_means is None and cfg.custom_stds is None:
+            return paths
+
+        hist_means = paths.mean(axis=(0, 1))  # monthly
+        hist_stds = paths.std(axis=(0, 1))    # monthly
+
+        for i in range(len(codes)):
+            target_monthly_mean = (cfg.custom_means[i] / 12) if cfg.custom_means is not None else hist_means[i]
+            target_monthly_std = (cfg.custom_stds[i] / np.sqrt(12)) if cfg.custom_stds is not None else hist_stds[i]
+
+            # Center, scale, then re-shift to target mean
+            centered = paths[:, :, i] - hist_means[i]
+            if hist_stds[i] > 1e-10:
+                scaled = centered * (target_monthly_std / hist_stds[i])
+            else:
+                scaled = centered
+            paths[:, :, i] = scaled + target_monthly_mean
 
         return paths
 
@@ -433,120 +469,188 @@ class MonteCarloSimulation:
             sampler = NormalSampler(means, cov, seed=cfg.seed)
             return sampler.generate_path(cfg.years, cfg.simulations)
 
-    def _apply_rebalancing(self, paths: np.ndarray) -> np.ndarray:
-        """
-        Apply portfolio rebalancing.
+    def _simulate_with_rebalance_and_cashflow(
+        self, paths: np.ndarray, initial_balance: float
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Correctly simulate per-asset balances with rebalancing and cashflows.
 
-        After each rebalance period, reset each asset's weight to target.
+        Rebalancing is done by resetting each asset's balance to
+        `alloc[i] * total_balance` at the configured frequency (0 = never).
+        Cashflows are applied AFTER growth (and rebalancing on that same
+        boundary month) and drawn proportionally from each asset.
+
+        Returns
+        -------
+        balance_paths : ndarray (n_sims, n_months + 1)
+        port_returns : ndarray (n_sims, n_months) — effective portfolio returns
         """
         cfg = self.config
-        if cfg.rebalance_frequency == 0:
-            return paths  # No rebalancing
+        n_sims, n_months, n_assets = paths.shape
+        allocs = np.array([w for _, w in cfg.assets], dtype=float)
 
-        # Determine rebalance months
-        freq_map = {1: 12, 2: 6, 3: 3, 4: 1}
-        rebalance_months = freq_map.get(cfg.rebalance_frequency, 12)
+        freq_map = {0: 0, 1: 12, 2: 6, 3: 3, 4: 1}
+        rebal_months = freq_map.get(cfg.rebalance_frequency, 12)
 
-        allocs = np.array([w for _, w in cfg.assets])
+        # Generate cashflow schedule (per-month amount or rate; type-3 = rate)
+        cf = cfg.cashflow
+        if cf is not None and cf.adjustment_type != 0:
+            cf_engine = CashFlowEngine(cf)
+            cf_schedule = cf_engine.generate_schedule(n_months)
+            cf_type = cf.adjustment_type
+        else:
+            cf_schedule = np.zeros(n_months)
+            cf_type = 0
 
-        for sim in range(paths.shape[0]):
-            for m in range(paths.shape[1]):
-                if m > 0 and m % rebalance_months == 0:
-                    # Rebalance: set returns so weights return to target
-                    # This is a simplified rebalance — full version requires
-                    # tracking actual balance per asset
-                    port_return = np.sum(paths[sim, m - 1] * allocs)
-                    paths[sim, m] = (
-                        paths[sim, m] + port_return * (1 - allocs)
-                    )
+        # Per-asset balances: (n_sims, n_assets)
+        asset_bal = np.tile(initial_balance * allocs, (n_sims, 1))
 
+        balance_paths = np.zeros((n_sims, n_months + 1))
+        balance_paths[:, 0] = initial_balance
+        port_returns = np.zeros((n_sims, n_months))
+
+        for m in range(n_months):
+            # 1. Grow each asset independently
+            prev_total = asset_bal.sum(axis=1)  # (n_sims,)
+            asset_bal = asset_bal * (1 + paths[:, m, :])
+            total = asset_bal.sum(axis=1)
+
+            # Effective portfolio return this month
+            with np.errstate(divide="ignore", invalid="ignore"):
+                port_returns[:, m] = np.where(prev_total > 0, total / prev_total - 1, 0.0)
+
+            # 2. Rebalance at boundary
+            if rebal_months > 0 and (m + 1) % rebal_months == 0:
+                asset_bal = total[:, None] * allocs[None, :]
+
+            # 3. Apply cashflow
+            if cf_type == 3:
+                # Fixed % — apply once per period boundary only
+                freq = cf.frequency if cf else "annual"
+                periods_per_year = {"monthly": 12, "quarterly": 4, "annual": 1}.get(freq, 1)
+                # gate: apply at m % (12/periods_per_year) == 0
+                step = 12 // periods_per_year
+                if m % step == 0:
+                    wd_pct_annual = cf_schedule[m]  # annual rate
+                    # per-period rate = annual / periods_per_year
+                    per_period_rate = wd_pct_annual / periods_per_year
+                    total_after = asset_bal.sum(axis=1) * (1 - per_period_rate)
+                    # Preserve allocation proportions
+                    asset_bal = asset_bal * (1 - per_period_rate)
+            elif cf_type == 4:
+                # Life expectancy (already per-month in schedule)
+                amt = abs(cf_schedule[m])
+                if amt > 0:
+                    total_now = asset_bal.sum(axis=1)
+                    ratio = np.where(total_now > 0, np.maximum(0, total_now - amt) / total_now, 0)
+                    asset_bal = asset_bal * ratio[:, None]
+            elif cf_type in (1, 2, 8, 9) and cf_schedule[m] != 0:
+                # Contribution (+) or withdrawal (-) as fixed amount
+                amt = cf_schedule[m]
+                if amt > 0:
+                    # Contribution: add to each asset proportionally to target allocs
+                    asset_bal = asset_bal + amt * allocs[None, :]
+                else:
+                    # Withdrawal: subtract, preserving current proportions
+                    total_now = asset_bal.sum(axis=1)
+                    withdraw_amt = -amt  # positive
+                    ratio = np.where(total_now > 0,
+                                     np.maximum(0, total_now - withdraw_amt) / total_now,
+                                     0)
+                    asset_bal = asset_bal * ratio[:, None]
+
+            # Clamp to zero
+            asset_bal = np.maximum(asset_bal, 0.0)
+            balance_paths[:, m + 1] = asset_bal.sum(axis=1)
+
+        return balance_paths, port_returns
+
+    def _apply_rebalancing(self, paths: np.ndarray) -> np.ndarray:
+        """Legacy no-op — rebalancing now handled in _simulate_with_rebalance_and_cashflow."""
         return paths
 
     def _apply_cashflows_vectorized(
         self, paths: np.ndarray, initial_balance: float
     ) -> np.ndarray:
-        """
-        Apply cash flows to simulated paths — vectorized.
-
-        Returns
-        -------
-        ndarray, shape (n_sims, n_months + 1)
-            Balance over time including cashflows.
-        """
-        cfg = self.config
-        if cfg.cashflow is None or cfg.cashflow.adjustment_type == 0:
-            return self._paths_to_balance(paths, initial_balance)
-
-        cf = cfg.cashflow
-        n_sims, n_months, n_assets = paths.shape
-        allocs = np.array([w for _, w in cfg.assets])
-
-        # Convert multi-asset returns to portfolio returns
-        port_returns = paths @ allocs  # (n_sims, n_months)
-
-        # Generate cashflow schedule
-        cf_engine = CashFlowEngine(cf)
-        cf_schedule = cf_engine.generate_schedule(n_months)  # (n_months,)
-
-        # Vectorized balance computation
-        balances = np.zeros((n_sims, n_months + 1))
-        balances[:, 0] = initial_balance
-
-        for m in range(n_months):
-            balances[:, m + 1] = balances[:, m] * (1 + port_returns[:, m])
-            if cf.adjustment_type == 3:
-                withdrawal_pct = cf_schedule[m]
-                balances[:, m + 1] -= balances[:, m + 1] * withdrawal_pct
-            elif cf.adjustment_type == 4:
-                balances[:, m + 1] -= abs(cf_schedule[m])
-            else:
-                balances[:, m + 1] += cf_schedule[m]
-            balances[:, m + 1] = np.maximum(balances[:, m + 1], 0.0)
-
-        return balances
+        """Delegates to the unified per-asset simulator."""
+        balance_paths, _port_returns = self._simulate_with_rebalance_and_cashflow(
+            paths, initial_balance
+        )
+        # Stash the effective portfolio returns for later CAGR/vol calcs
+        self._effective_port_returns = _port_returns
+        return balance_paths
 
     def _paths_to_balance(
         self, paths: np.ndarray, initial_balance: float
     ) -> np.ndarray:
-        """Convert return paths to balance paths (no cashflow)."""
+        """Convert return paths to balance paths (no cashflow, no rebalance)."""
         allocs = np.array([w for _, w in self.config.assets])
-        port_returns = paths @ allocs  # (n_sims, n_months)
+        port_returns = paths @ allocs
+        self._effective_port_returns = port_returns
         balances = initial_balance * np.cumprod(1 + port_returns, axis=1)
         return np.concatenate(
             [np.full((paths.shape[0], 1), initial_balance), balances], axis=1
         )
 
-    def run(self) -> "MonteCarloResults":
-        """
-        Execute the Monte Carlo simulation.
+    def _sample_inflation(self, n_sims: int, n_months: int) -> np.ndarray:
+        """Sample inflation per (sim, month). Returns shape (n_sims, n_months).
 
-        Returns
-        -------
-        MonteCarloResults
+        - inflation_model == 1: sample from historical CPI data (if available),
+          else fall back to N(mean, vol).
+        - inflation_model == 2: parametric N(mean, vol).
+        Applied as MONTHLY inflation rate (annual/12).
         """
+        cfg = self.config
+        if not cfg.inflation_adjusted:
+            return np.zeros((n_sims, n_months))
+
+        if cfg.inflation_model == 1 and _HAS_INFLATION_DATA:
+            try:
+                cpi = load_inflation_data()
+                # Convert to Series if DataFrame
+                if isinstance(cpi, pd.DataFrame):
+                    cpi = cpi.iloc[:, 0]
+                # CPI is monthly inflation rate (as decimal)
+                hist_infl = cpi.dropna().values
+                if len(hist_infl) > 0:
+                    # Bootstrap monthly inflation samples
+                    idx = self._rng.integers(0, len(hist_infl), size=(n_sims, n_months))
+                    return hist_infl[idx]
+            except Exception:
+                pass  # Fall through to parametric
+
+        # Parametric inflation: N(mean_monthly, vol_monthly)
+        mean_m = cfg.inflation_mean / 12
+        vol_m = cfg.inflation_volatility / np.sqrt(12)
+        return self._rng.normal(mean_m, vol_m, size=(n_sims, n_months))
+
+    def run(self) -> "MonteCarloResults":
+        """Execute the Monte Carlo simulation."""
         cfg = self.config
         codes = [a for a, _ in cfg.assets]
 
-        # Step 1: Generate return paths
         print(f"Generating {cfg.simulations:,} simulations × {cfg.years} years × {len(codes)} assets...")
         paths = self._build_return_paths()
         print(f"  Return paths: {paths.shape}")
 
-        # Step 2: Apply rebalancing
-        if cfg.rebalance_frequency > 0:
-            paths = self._apply_rebalancing(paths)
-
-        # Step 3: Apply cashflows → balance paths
+        # Apply cashflows + rebalancing → balance paths (per-asset simulation)
         balance_paths = self._apply_cashflows_vectorized(paths, cfg.initial_balance)
         print(f"  Balance paths: {balance_paths.shape}")
 
-        # Step 4: Compute statistics
+        # Sample inflation per (sim, month) — used for real-return calcs
+        n_months = paths.shape[1]
+        inflation_paths = self._sample_inflation(cfg.simulations, n_months)
+
+        # Effective portfolio returns after rebalancing (from balance simulation)
+        eff_port_returns = getattr(self, "_effective_port_returns", None)
+
         results = MonteCarloResults(
             config=cfg,
             balance_paths=balance_paths,
             return_paths=paths,
             asset_codes=codes,
             asset_names=[get_asset(c).name if get_asset(c) else c for c in codes],
+            inflation_paths=inflation_paths,
+            effective_port_returns=eff_port_returns,
         )
         results._compute_all()
         print("  Done.")
@@ -573,12 +677,16 @@ class MonteCarloResults:
         return_paths: np.ndarray,
         asset_codes: list[str],
         asset_names: list[str],
+        inflation_paths: np.ndarray | None = None,
+        effective_port_returns: np.ndarray | None = None,
     ):
         self.config = config
-        self.balance_paths = balance_paths       # (n_sims, n_months+1)
-        self.return_paths = return_paths         # (n_sims, n_months, n_assets)
+        self.balance_paths = balance_paths
+        self.return_paths = return_paths
         self.asset_codes = asset_codes
         self.asset_names = asset_names
+        self.inflation_paths = inflation_paths  # (n_sims, n_months) or None
+        self.effective_port_returns = effective_port_returns  # (n_sims, n_months) or None
 
         self.n_sims = balance_paths.shape[0]
         self.n_months = balance_paths.shape[1] - 1
@@ -620,107 +728,117 @@ class MonteCarloResults:
         self.portfolio_model = pd.DataFrame(data)
 
     def _compute_performance_summary(self) -> None:
-        """
-        PV's Performance Summary table: 9 rows × 5 percentiles.
-        Rows: TWR(nominal), TWR(real), End Balance(nominal), End Balance(real),
-              Ann Mean Return, Ann Volatility, Sharpe, Sortino, Max DD, Safe Withdrawal, Perpetual
+        """PV's Performance Summary table: 9 rows × 5 percentiles.
+
+        - CAGR uses TWR (geometric mean of annual returns; NOT affected by cashflows).
+        - Real return uses Fisher equation: (1+nominal)/(1+inflation) - 1.
+        - Includes ALL years (no filter dropping -100% years).
         """
         cfg = self.config
         pcts = cfg.percentiles
         labels = [f"p{int(p * 100)}" for p in pcts]
 
-        # Extract final balances
         final_balances = self.balance_paths[:, -1]
         initial = cfg.initial_balance
+        n_sims = self.n_sims
 
-        # Compute per-simulation CAGR and returns
-        # Compute per-simulation CAGR and returns
-        self.sim_cagrs = np.zeros(self.n_sims)
-        sim_ann_returns = np.zeros(self.n_sims)
-        sim_max_dds = np.zeros(self.n_sims)
-        sim_sharpes = np.zeros(self.n_sims)
-        sim_sortinos = np.zeros(self.n_sims)
-        port_returns = self.return_paths @ np.array([w for _, w in cfg.assets])
+        # Portfolio returns — use effective ones (post-rebalance) if available,
+        # else raw allocation-weighted from paths.
+        if self.effective_port_returns is not None:
+            port_returns = self.effective_port_returns
+        else:
+            allocs = np.array([w for _, w in cfg.assets])
+            port_returns = self.return_paths @ allocs
 
+        # Ensure n_months divisible by 12 for reshape (should be by construction)
+        n_full_years = self.n_months // 12
+        n_months_used = n_full_years * 12
+        pr = port_returns[:, :n_months_used]
+
+        # Annual returns per simulation (n_sims, n_full_years)
+        ann_rets_all = (1 + pr).reshape(n_sims, n_full_years, 12).prod(axis=2) - 1
+
+        # CAGR = geometric mean of ALL annual returns (INCLUDING -100% wipeout years,
+        # which correctly send CAGR to -100%; do NOT filter them out).
+        # (1 + geo_mean)^n = prod(1 + ann) → geo_mean = prod ** (1/n) - 1
+        # Guard against negative product (should not happen unless (1+r) < 0 for some r)
+        product = np.prod(1 + ann_rets_all, axis=1)
+        with np.errstate(invalid="ignore"):
+            self.sim_cagrs = np.where(
+                product > 0,
+                product ** (1.0 / n_full_years) - 1,
+                -1.0,  # Total wipeout
+            )
+
+        sim_ann_returns = ann_rets_all.mean(axis=1)
+        sim_ann_vols = pr.std(axis=1) * np.sqrt(12)
+
+        # Max drawdown per sim
+        peaks = np.maximum.accumulate(self.balance_paths, axis=1)
+        drawdowns = (self.balance_paths - peaks) / np.maximum(peaks, 1e-9)
+        sim_max_dds = drawdowns.min(axis=1)
+
+        # Sharpe (vectorized)
         rf_monthly = cfg.risk_free_rate / 12
+        pr_mean = pr.mean(axis=1)
+        pr_std = pr.std(axis=1)
+        sim_sharpes = np.where(pr_std > 0, (pr_mean - rf_monthly) / pr_std * np.sqrt(12), 0.0)
 
-        for sim in range(self.n_sims):
-            # Annual returns
-            ann_rets = (1 + port_returns[sim]).reshape(-1, 12).prod(axis=1) - 1
-            sim_ann_returns[sim] = ann_rets.mean()
+        # Sortino using standard TDD (target = 0)
+        downside = np.maximum(0.0, -pr)  # max(0, target-r) with target=0
+        dsd = np.sqrt((downside ** 2).mean(axis=1))
+        sim_sortinos = np.where(dsd > 0, (pr_mean - rf_monthly) / dsd * np.sqrt(12), np.nan)
 
-            # CAGR - use geometric mean of annual returns (TWR-based, NOT affected by cashflows)
-            valid = ann_rets > -1
-            final = final_balances[sim]
-            initial = cfg.initial_balance
-            if valid.sum() > 2 and final > 0 and initial > 0:
-                # Geometric mean of annual returns = true portfolio CAGR
-                valid_rets = ann_rets[valid]
-                self.sim_cagrs[sim] = np.prod(1 + valid_rets) ** (1 / len(valid_rets)) - 1
-            else:
-                self.sim_cagrs[sim] = 0.0
-
-            # Max drawdown from balance
-            bal = self.balance_paths[sim]
-            peak = np.maximum.accumulate(bal)
-            dd = (bal - peak) / peak
-            sim_max_dds[sim] = dd.min()
-
-            # Sharpe
-            if port_returns[sim].std() > 0:
-                sim_sharpes[sim] = (
-                    (port_returns[sim].mean() - rf_monthly)
-                    / port_returns[sim].std()
-                    * np.sqrt(12)
-                )
-
-            # Sortino
-            downside = port_returns[sim][port_returns[sim] < 0]
-            if len(downside) > 0 and downside.std() > 0:
-                sim_sortinos[sim] = (
-                    (port_returns[sim].mean() - rf_monthly)
-                    / downside.std()
-                    * np.sqrt(12)
-                )
-
-        # Inflation adjustment
-        inflation = cfg.inflation_mean if cfg.inflation_adjusted else 0.0
-        real_cagrs = (1 + self.sim_cagrs) / (1 + inflation) - 1
-        real_finals = final_balances / (1 + inflation) ** cfg.years
+        # Real returns — use per-sim inflation (average annualized)
+        if self.inflation_paths is not None and cfg.inflation_adjusted:
+            infl_monthly_mean = self.inflation_paths[:, :n_months_used].mean(axis=1)
+            infl_annual = (1 + infl_monthly_mean) ** 12 - 1  # per sim
+            # Fisher: real = (1 + nominal) / (1 + infl) - 1
+            real_ann_returns = (1 + sim_ann_returns) / (1 + infl_annual) - 1
+            real_finals = final_balances / (1 + infl_annual) ** n_full_years
+        else:
+            real_ann_returns = sim_ann_returns
+            real_finals = final_balances
 
         # Build table
         rows = {}
         row_data = [
             ("Time Weighted Rate of Return (nominal)", sim_ann_returns),
-            ("Time Weighted Rate of Return (real)", sim_ann_returns - inflation),
+            ("Time Weighted Rate of Return (real)", real_ann_returns),
             ("Portfolio End Balance (nominal)", final_balances),
             ("Portfolio End Balance (real)", real_finals),
             ("Annual Mean Return", sim_ann_returns),
-            ("Annualized Volatility", np.array([
-                port_returns[sim].std() * np.sqrt(12)
-                for sim in range(self.n_sims)
-            ])),
+            ("Annualized Volatility", sim_ann_vols),
             ("Sharpe Ratio", sim_sharpes),
             ("Sortino Ratio", sim_sortinos),
             ("Maximum Drawdown", sim_max_dds),
         ]
-
         for label, values in row_data:
             if "Balance" in label:
                 rows[label] = [float(np.percentile(values, p * 100)) for p in pcts]
             elif "Ratio" in label:
-                # Ratios — no % sign, just decimal
-                rows[label] = [f"{np.percentile(values, p * 100):.2f}" for p in pcts]
+                # Nan-safe percentile
+                clean = values[~np.isnan(values)]
+                if len(clean) == 0:
+                    clean = np.array([0.0])
+                rows[label] = [f"{np.percentile(clean, p * 100):.2f}" for p in pcts]
             else:
-                # Percentages
                 rows[label] = [f"{np.percentile(values, p * 100):.2%}" for p in pcts]
 
         self.performance_summary = pd.DataFrame(rows, index=labels).T
         self.performance_summary.index.name = "Statistic"
 
-        # Safe & Perpetual Withdrawal Rates
-        self.swr = safe_withdrawal_rate(final_balances, initial, cfg.years)
-        self.pwr = perpetual_withdrawal_rate(final_balances, initial, cfg.years)
+        # SWR / PWR — real MC calculation using effective portfolio returns
+        try:
+            self.swr = safe_withdrawal_rate(
+                pr, initial, cfg.years, inflation_mean=cfg.inflation_mean,
+            )
+            self.pwr = perpetual_withdrawal_rate(
+                pr, initial, cfg.years, inflation_mean=cfg.inflation_mean,
+            )
+        except Exception:
+            self.swr = 0.0
+            self.pwr = 0.0
 
     def _compute_balance_percentiles(self) -> None:
         """
@@ -745,39 +863,54 @@ class MonteCarloResults:
         self.balance_percentiles = df
 
     def _compute_simulated_assets(self) -> None:
-        """
-        Simulated Assets table: correlations, expected return, volatility.
-        Matches PV's 'Simulated Assets - Correlations and Returns' section.
+        """Simulated Assets table: correlations, expected return, volatility.
+
+        CAGR = geometric mean of annual returns (compound annual growth).
+        Expected Return = arithmetic annualization of monthly mean.
+        These are DIFFERENT numbers; do not duplicate.
         """
         n_assets = len(self.asset_codes)
-        asset_returns = self.return_paths.reshape(-1, n_assets)  # (n_sims*n_months, n_assets)
+        n_sims, n_months, _ = self.return_paths.shape
+        n_full_years = n_months // 12
 
-        ann_returns = np.zeros(n_assets)
-        ann_vols = np.zeros(n_assets)
+        # Per-asset annualized geometric CAGR (mean across sims)
+        cagrs_per_asset = np.zeros(n_assets)
+        exp_ret_per_asset = np.zeros(n_assets)
+        vols_per_asset = np.zeros(n_assets)
 
         for i in range(n_assets):
-            rets = asset_returns[:, i]
-            ann_returns[i] = (1 + rets.mean()) ** 12 - 1
-            ann_vols[i] = rets.std() * np.sqrt(12)
+            rets = self.return_paths[:, : n_full_years * 12, i]  # (n_sims, n_months)
+            ann_rets = (1 + rets).reshape(n_sims, n_full_years, 12).prod(axis=2) - 1
 
-        # Build table
+            # CAGR = geometric mean of annual returns, averaged across sims
+            products = np.prod(1 + ann_rets, axis=1)
+            with np.errstate(invalid="ignore"):
+                sim_cagrs = np.where(products > 0, products ** (1.0 / n_full_years) - 1, -1.0)
+            cagrs_per_asset[i] = float(np.median(sim_cagrs))
+
+            # Expected Return = arithmetic annualization of monthly mean
+            exp_ret_per_asset[i] = (1 + rets.mean()) ** 12 - 1
+            vols_per_asset[i] = rets.std() * np.sqrt(12)
+
+        # Correlation matrix from simulated returns
+        asset_flat = self.return_paths.reshape(-1, n_assets)
         col_names = self.asset_names + ["CAGR", "Expected Return", "Volatility"]
         table_data = []
 
         if n_assets == 1:
-            # Single asset: correlation is 1.0, no correlation matrix
-            row = [1.0, f"{ann_returns[0]:.2%}", f"{ann_returns[0]:.2%}", f"{ann_vols[0]:.2%}"]
+            row = [1.0,
+                   f"{cagrs_per_asset[0]:.2%}",
+                   f"{exp_ret_per_asset[0]:.2%}",
+                   f"{vols_per_asset[0]:.2%}"]
             table_data.append(row)
         else:
-            # Correlation matrix from simulated returns
-            sim_corr = np.corrcoef(asset_returns.T)
-
-            for i, code in enumerate(self.asset_codes):
+            sim_corr = np.corrcoef(asset_flat.T)
+            for i in range(n_assets):
                 row = list(sim_corr[i])
                 row += [
-                    f"{ann_returns[i]:.2%}",
-                    f"{ann_returns[i]:.2%}",
-                    f"{ann_vols[i]:.2%}",
+                    f"{cagrs_per_asset[i]:.2%}",
+                    f"{exp_ret_per_asset[i]:.2%}",
+                    f"{vols_per_asset[i]:.2%}",
                 ]
                 table_data.append(row)
 
@@ -788,19 +921,22 @@ class MonteCarloResults:
         )
 
     def _compute_expected_returns(self) -> None:
-        """
-        Expected Annual Return probability table.
-        Probability of achieving ≥ X% return at various horizons.
-        """
+        """Expected Annual Return probability table."""
         cfg = self.config
-        pcts = cfg.percentiles
-        allocs = np.array([w for _, w in cfg.assets])
-        port_returns = self.return_paths @ allocs
+        n_full_years = self.n_months // 12
+        if n_full_years < 1:
+            self.expected_returns = pd.DataFrame()
+            return
 
-        # Annual returns per simulation
-        ann_returns = (1 + port_returns).reshape(self.n_sims, cfg.years, 12).prod(axis=2) - 1
+        if self.effective_port_returns is not None:
+            port_returns = self.effective_port_returns
+        else:
+            allocs = np.array([w for _, w in cfg.assets])
+            port_returns = self.return_paths @ allocs
 
-        # Thresholds
+        pr = port_returns[:, : n_full_years * 12]
+        ann_returns = (1 + pr).reshape(self.n_sims, n_full_years, 12).prod(axis=2) - 1
+
         thresholds = [0.00, 0.025, 0.05, 0.075, 0.10, 0.125, 0.15]
         horizons = [1, 3, 5, 10, 15, 20, 25, 30]
 
@@ -808,26 +944,30 @@ class MonteCarloResults:
         for thr in thresholds:
             row = {}
             for h in horizons:
-                if h <= cfg.years:
-                    # Multi-year return (geometric mean)
+                if h <= n_full_years:
                     multi_year = (1 + ann_returns[:, :h]).prod(axis=1) ** (1 / h) - 1
                     row[str(h)] = f"{(multi_year >= thr).mean():.2%}"
                 else:
                     row[str(h)] = "—"
             rows[f">= {thr:.0%}"] = row
-
         self.expected_returns = pd.DataFrame(rows).T
 
     def _compute_loss_probabilities(self) -> None:
-        """
-        Loss Probability table.
-        Probability of loss ≥ X% with/without cashflows.
-        """
+        """Loss Probability table."""
         cfg = self.config
-        allocs = np.array([w for _, w in cfg.assets])
-        port_returns = self.return_paths @ allocs
+        n_full_years = self.n_months // 12
+        if n_full_years < 1:
+            self.loss_probabilities = pd.DataFrame()
+            return
 
-        ann_returns = (1 + port_returns).reshape(self.n_sims, cfg.years, 12).prod(axis=2) - 1
+        if self.effective_port_returns is not None:
+            port_returns = self.effective_port_returns
+        else:
+            allocs = np.array([w for _, w in cfg.assets])
+            port_returns = self.return_paths @ allocs
+
+        pr = port_returns[:, : n_full_years * 12]
+        ann_returns = (1 + pr).reshape(self.n_sims, n_full_years, 12).prod(axis=2) - 1
 
         loss_thresholds = [0.025, 0.05, 0.075, 0.10, 0.125, 0.15, 0.175, 0.20]
         horizons = [1, 3, 5, 10, 15, 20, 25, 30]
@@ -836,20 +976,26 @@ class MonteCarloResults:
         for loss in loss_thresholds:
             row = {}
             for h in horizons:
-                if h <= cfg.years:
+                if h <= n_full_years:
                     multi_year = (1 + ann_returns[:, :h]).prod(axis=1) ** (1 / h) - 1
                     row[str(h)] = f"{(multi_year <= -loss).mean():.2%}"
                 else:
                     row[str(h)] = "—"
             rows[f">= {loss:.1%}"] = row
-
         self.loss_probabilities = pd.DataFrame(rows).T
 
     def _compute_key_metrics(self) -> None:
-        """Compute summary metrics."""
+        """Compute summary metrics.
+
+        Success rate: fraction of paths that end with balance > 1% of initial
+        (treats near-zero balances as depleted, matching PV semantics).
+        """
         final_balances = self.balance_paths[:, -1]
         self.median_final_balance = float(np.median(final_balances))
-        self.success_rate = float((final_balances > 0).mean())
+
+        # Success = final balance stays above 1% of initial (not just > 0)
+        threshold = self.config.initial_balance * 0.01
+        self.success_rate = float((final_balances > threshold).mean())
 
         if self.config.years > 0 and self.config.initial_balance > 0:
             median_cagr = (
@@ -857,5 +1003,5 @@ class MonteCarloResults:
                 ** (1 / self.config.years) - 1
             )
             self.median_cagr_with_cashflows = median_cagr
-            # Use the TWR-based CAGR as primary metric
-            self.median_cagr = np.median(self.sim_cagrs)
+            # TWR-based CAGR (from ann_rets) is primary metric
+            self.median_cagr = float(np.median(self.sim_cagrs))

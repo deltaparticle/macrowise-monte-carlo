@@ -16,9 +16,10 @@ _DATA_DIR = _DEFAULT_ROOT / "data" / "processed"
 
 
 def set_data_directory(path: str | Path) -> None:
-    """Override the default data directory."""
+    """Override the default data directory and clear caches."""
     global _DATA_DIR
     _DATA_DIR = Path(path)
+    clear_cache()
 
 
 def get_data_directory() -> Path:
@@ -57,13 +58,16 @@ def load_covariance_matrix() -> pd.DataFrame:
 
 
 def load_inflation_data() -> pd.Series:
-    """Load Indian CPI monthly data."""
-    cpi = pd.read_pickle(_DATA_DIR / "inflation_data.pkl")
-    # CPI is in annual % change; convert to monthly
-    # If it's already monthly returns
-    if cpi.name is None:
-        cpi.name = "CPI"
-    return cpi
+    """Load Indian CPI monthly data as a Series (converts from DataFrame if needed)."""
+    obj = pd.read_pickle(_DATA_DIR / "inflation_data.pkl")
+    if isinstance(obj, pd.DataFrame):
+        # Take first column, assuming inflation rate
+        obj = obj.iloc[:, 0].copy()
+    elif not isinstance(obj, pd.Series):
+        obj = pd.Series(obj)
+    if getattr(obj, "name", None) is None:
+        obj.name = "CPI"
+    return obj
 
 
 def load_dynamic_rf() -> pd.DataFrame:

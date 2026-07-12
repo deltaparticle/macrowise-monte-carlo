@@ -133,83 +133,105 @@ class BootstrapSampler:
     def _sample_block(
         self, hist: pd.DataFrame, n_years: int
     ) -> np.ndarray:
-        """Sample variable-length blocks of years."""
+        """Sample variable-length blocks of years.
+
+        Supports circular bootstrapping when self.circular=True (wraps around
+        end of history).
+        """
         blocks = []
         years_generated = 0
+        hist_len = len(hist)
+        hist_vals = hist.values
 
         while years_generated < n_years:
-            # Pick random block length
-            block_len = self._rng.integers(
+            block_len = int(self._rng.integers(
                 self.block_min_years,
                 self.block_max_years + 1
-            )
-            # Don't overshoot
+            ))
             if years_generated + block_len > n_years:
                 block_len = n_years - years_generated
 
-            # Pick random start position
-            max_start = len(hist) - block_len * 12
-            if max_start <= 0:
-                # Use all available data
-                end = len(hist)
-                start = max(0, end - block_len * 12)
-            else:
-                start = self._rng.integers(0, max_start)
-                end = start + block_len * 12
+            block_months = block_len * 12
 
-            block = hist.iloc[start:end].values
+            if self.circular:
+                # Circular: any start position [0, hist_len), wrap if needed
+                start = int(self._rng.integers(0, hist_len))
+                if start + block_months <= hist_len:
+                    block = hist_vals[start:start + block_months]
+                else:
+                    # Wrap around
+                    tail = hist_vals[start:]
+                    remaining = block_months - len(tail)
+                    head = hist_vals[:remaining]
+                    block = np.concatenate([tail, head], axis=0)
+            else:
+                # Non-circular: start ∈ [0, hist_len - block_months]
+                max_start = hist_len - block_months
+                if max_start < 0:
+                    # Block bigger than history: use all available
+                    block = hist_vals
+                else:
+                    # Inclusive upper bound: max_start + 1
+                    start = int(self._rng.integers(0, max_start + 1))
+                    block = hist_vals[start:start + block_months]
+
             blocks.append(block)
             years_generated += block_len
 
         return np.concatenate(blocks, axis=0)
 
     def apply_sequence_stress(
-        self, returns_sequence: np.ndarray, n_worst_first: int, annual: bool = True
+        self,
+        returns_sequence: np.ndarray,
+        n_worst_first: int,
+        annual: bool = True,
+        portfolio_weights: np.ndarray | None = None,
     ) -> np.ndarray:
-        """
-        Apply sequence stress: put worst N years first.
+        """Apply sequence stress: put worst N years first.
 
         Parameters
         ----------
-        returns_sequence : ndarray
-            Monthly returns (n_months, n_assets)
+        returns_sequence : ndarray, shape (n_months, n_assets)
         n_worst_first : int
-            Number of worst years to place first
+            Number of worst years to place first.
         annual : bool
-            If True, sort by annual returns. If False, by total period.
-
-        Returns
-        -------
-        ndarray with worst N years moved to the front
+            If True, rank by portfolio-weighted annual returns.
+            If False, rank by portfolio-weighted total-period return
+            (which for monthly-level stress reduces to a compound sort).
+        portfolio_weights : ndarray, shape (n_assets,), optional
+            Portfolio weights for ranking. If None, uses equal weights.
         """
         if n_worst_first <= 0:
             return returns_sequence
 
+        n_assets = returns_sequence.shape[1]
+        if portfolio_weights is None:
+            portfolio_weights = np.ones(n_assets) / n_assets
+        portfolio_weights = np.asarray(portfolio_weights).flatten()
+
+        n_years = returns_sequence.shape[0] // 12
+        if n_years < 2:
+            return returns_sequence
+        reshaped = returns_sequence[: n_years * 12].reshape(n_years, 12, n_assets)
+
         if annual:
-            # Reshape to (n_years, 12, n_assets)
-            n_years = returns_sequence.shape[0] // 12
-            reshaped = returns_sequence[: n_years * 12].reshape(n_years, 12, -1)
-            annual_returns = (1 + reshaped).prod(axis=1) - 1  # (n_years, n_assets)
-
-            # For sequence stress, use portfolio-weighted average
-            # For now, use mean across assets
-            port_annual = annual_returns.mean(axis=1)
-
-            # Sort by worst (most negative) annual returns
-            worst_indices = np.argsort(port_annual)[:n_worst_first]
-            best_indices = np.argsort(port_annual)[n_worst_first:]
-
-            # Reorder: worst first, then best
-            reordered = np.concatenate(
-                [reshaped[worst_indices], reshaped[best_indices]], axis=0
-            )
-            return reordered.reshape(-1, returns_sequence.shape[1])
+            annual_asset_returns = (1 + reshaped).prod(axis=1) - 1  # (n_years, n_assets)
+            # PORTFOLIO-weighted annual return (not equal-weight)
+            port_annual = annual_asset_returns @ portfolio_weights
         else:
-            # Total period return for ordering
-            total_returns = (1 + returns_sequence).prod(axis=0)
-            sorted_idx = np.argsort(total_returns)[:n_worst_first]
-            # For non-annual, just put worst first (simplified)
-            return returns_sequence.copy()
+            # Compound monthly portfolio returns per year, then annualize
+            monthly_port = reshaped @ portfolio_weights  # (n_years, 12)
+            port_annual = (1 + monthly_port).prod(axis=1) - 1
+
+        sorted_idx = np.argsort(port_annual)
+        worst_indices = sorted_idx[:n_worst_first]
+        rest_indices = sorted_idx[n_worst_first:]
+        # After stress block, restore rest to CHRONOLOGICAL order (not sorted)
+        rest_chronological = np.sort(rest_indices)
+        reordered = np.concatenate(
+            [reshaped[worst_indices], reshaped[rest_chronological]], axis=0
+        )
+        return reordered.reshape(-1, n_assets)
 
 
 class YearlyBootstrap:
