@@ -989,65 +989,89 @@ class MonteCarloResults:
             columns=col_names,
         )
 
+    def _annualized_returns_at_horizons(self, horizons: list[int]) -> dict[int, np.ndarray]:
+        """Compute per-sim annualized return over each horizon, from BALANCE paths.
+
+        Using balance_paths (not return_paths) correctly captures depletion:
+        depleted paths get annualized return = -100%. Return-path-based
+        computation was silently under-counting depletions because once a
+        path hits zero, subsequent monthly returns are recorded as 0 (flat)
+        rather than -100%, which artificially inflated "≥ 0%" probabilities.
+
+        Returns
+        -------
+        dict {horizon_years: ndarray(n_sims,)} of annualized returns.
+        """
+        initial = self.config.initial_balance
+        out = {}
+        for h in horizons:
+            month_idx = min(h * 12, self.n_months)
+            bal_h = self.balance_paths[:, month_idx]
+            with np.errstate(invalid="ignore", divide="ignore"):
+                ratio = bal_h / initial if initial > 0 else np.zeros_like(bal_h)
+                ann = np.where(
+                    bal_h > 0,
+                    np.power(np.maximum(ratio, 1e-12), 1.0 / h) - 1,
+                    -1.0,   # depleted => -100% annualized
+                )
+            out[h] = ann
+        return out
+
     def _compute_expected_returns(self) -> None:
-        """Expected Annual Return probability table."""
-        cfg = self.config
+        """Expected Annual Return probability table (balance-path based).
+
+        For each horizon, computes the annualized return implied by the
+        starting balance and the balance at that horizon:
+            ann_return = (balance[H] / initial) ** (1/H) - 1
+        Depleted paths (balance = 0) contribute -100%, so they correctly
+        fall below every positive threshold.
+        """
         n_full_years = self.n_months // 12
         if n_full_years < 1:
             self.expected_returns = pd.DataFrame()
             return
 
-        if self.effective_port_returns is not None:
-            port_returns = self.effective_port_returns
-        else:
-            allocs = np.array([w for _, w in cfg.assets])
-            port_returns = self.return_paths @ allocs
-
-        pr = port_returns[:, : n_full_years * 12]
-        ann_returns = (1 + pr).reshape(self.n_sims, n_full_years, 12).prod(axis=2) - 1
-
         thresholds = [0.00, 0.025, 0.05, 0.075, 0.10, 0.125, 0.15]
         horizons = [1, 3, 5, 10, 15, 20, 25, 30]
+        ann_at_h = self._annualized_returns_at_horizons(
+            [h for h in horizons if h <= n_full_years]
+        )
 
         rows = {}
         for thr in thresholds:
             row = {}
             for h in horizons:
-                if h <= n_full_years:
-                    multi_year = (1 + ann_returns[:, :h]).prod(axis=1) ** (1 / h) - 1
-                    row[str(h)] = f"{(multi_year >= thr).mean():.2%}"
+                if h in ann_at_h:
+                    row[str(h)] = f"{(ann_at_h[h] >= thr).mean():.2%}"
                 else:
                     row[str(h)] = "—"
             rows[f">= {thr:.0%}"] = row
         self.expected_returns = pd.DataFrame(rows).T
 
     def _compute_loss_probabilities(self) -> None:
-        """Loss Probability table."""
-        cfg = self.config
+        """Loss Probability table (balance-path based).
+
+        P(annualized return over H years <= -X%). Uses the same balance-path
+        annualized return as `_compute_expected_returns`, so depleted paths
+        correctly count as >= 20% annualized loss (they are -100%).
+        """
         n_full_years = self.n_months // 12
         if n_full_years < 1:
             self.loss_probabilities = pd.DataFrame()
             return
 
-        if self.effective_port_returns is not None:
-            port_returns = self.effective_port_returns
-        else:
-            allocs = np.array([w for _, w in cfg.assets])
-            port_returns = self.return_paths @ allocs
-
-        pr = port_returns[:, : n_full_years * 12]
-        ann_returns = (1 + pr).reshape(self.n_sims, n_full_years, 12).prod(axis=2) - 1
-
         loss_thresholds = [0.025, 0.05, 0.075, 0.10, 0.125, 0.15, 0.175, 0.20]
         horizons = [1, 3, 5, 10, 15, 20, 25, 30]
+        ann_at_h = self._annualized_returns_at_horizons(
+            [h for h in horizons if h <= n_full_years]
+        )
 
         rows = {}
         for loss in loss_thresholds:
             row = {}
             for h in horizons:
-                if h <= n_full_years:
-                    multi_year = (1 + ann_returns[:, :h]).prod(axis=1) ** (1 / h) - 1
-                    row[str(h)] = f"{(multi_year <= -loss).mean():.2%}"
+                if h in ann_at_h:
+                    row[str(h)] = f"{(ann_at_h[h] <= -loss).mean():.2%}"
                 else:
                     row[str(h)] = "—"
             rows[f">= {loss:.1%}"] = row
