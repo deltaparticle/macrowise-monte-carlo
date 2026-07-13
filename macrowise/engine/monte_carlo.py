@@ -637,10 +637,11 @@ class MonteCarloSimulation:
     def _sample_inflation(self, n_sims: int, n_months: int) -> np.ndarray:
         """Sample inflation per (sim, month). Returns shape (n_sims, n_months).
 
+        Output units: monthly inflation rate as decimal (e.g., 0.003 = 0.3%/month).
+
         - inflation_model == 1: sample from historical CPI data (if available),
           else fall back to N(mean, vol).
         - inflation_model == 2: parametric N(mean, vol).
-        Applied as MONTHLY inflation rate (annual/12).
         """
         cfg = self.config
         if not cfg.inflation_adjusted:
@@ -649,15 +650,20 @@ class MonteCarloSimulation:
         if cfg.inflation_model == 1 and _HAS_INFLATION_DATA:
             try:
                 cpi = load_inflation_data()
-                # Convert to Series if DataFrame
                 if isinstance(cpi, pd.DataFrame):
                     cpi = cpi.iloc[:, 0]
-                # CPI is monthly inflation rate (as decimal)
-                hist_infl = cpi.dropna().values
-                if len(hist_infl) > 0:
-                    # Bootstrap monthly inflation samples
-                    idx = self._rng.integers(0, len(hist_infl), size=(n_sims, n_months))
-                    return hist_infl[idx]
+                # inflation_data.pkl stores CPI INDEX LEVELS (e.g., 35.7 to 159.2),
+                # NOT inflation rates. Convert level series → monthly rate via
+                # pct_change, then drop the first NaN.
+                cpi_series = cpi.dropna()
+                if len(cpi_series) > 1:
+                    monthly_rates = cpi_series.pct_change().dropna().values
+                    # Sanity: monthly inflation rates should be small (< 10% typically).
+                    # If not, series was probably already in rates → detect and skip.
+                    if len(monthly_rates) > 0 and np.abs(monthly_rates).mean() < 0.05:
+                        idx = self._rng.integers(0, len(monthly_rates),
+                                                 size=(n_sims, n_months))
+                        return monthly_rates[idx]
             except Exception:
                 pass  # Fall through to parametric
 
