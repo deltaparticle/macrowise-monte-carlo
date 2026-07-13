@@ -30,9 +30,7 @@ from macrowise.engine.cashflow import CashFlowConfig
 from macrowise.engine.tax import IndianTaxCalculator, IndianTaxRates, DEFAULT_TAX_RATES
 from macrowise.data.asset_registry import (
     get_asset,
-    list_data_codes,
-    get_default_portfolio_60_40,
-    PV_TO_INDIAN_ALIAS,
+    list_asset_aliases,
 )
 from macrowise.viz.charts import (
     plot_allocation_pie,
@@ -56,9 +54,7 @@ __all__ = [
     "plot_drawdown_distribution",
     "format_inr",
     "get_asset",
-    "list_data_codes",
-    "get_default_portfolio_60_40",
-    "PV_TO_INDIAN_ALIAS",
+    "list_asset_aliases",
 ]
 
 

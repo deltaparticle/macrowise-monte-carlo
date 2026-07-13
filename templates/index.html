@@ -126,11 +126,12 @@
                   <button type="button" onclick="clearAllocs()" class="btn-secondary text-xs">Clear All</button>
                 </div>
                 <div class="flex gap-1 mt-1 flex-wrap">
-                  <button type="button" onclick="loadPreset('60_40')" class="text-xs text-blue-600 hover:underline">60/40</button>
-                  <button type="button" onclick="loadPreset('80_20')" class="text-xs text-blue-600 hover:underline">80/20</button>
-                  <button type="button" onclick="loadPreset('100_equity')" class="text-xs text-blue-600 hover:underline">100% Equity</button>
-                  <button type="button" onclick="loadPreset('all_seasons')" class="text-xs text-blue-600 hover:underline">All Seasons</button>
-                  <button type="button" onclick="loadPreset('core_four')" class="text-xs text-blue-600 hover:underline">Core Four</button>
+                  <button type="button" onclick="loadPreset('nifty_50')" class="text-xs text-blue-600 hover:underline">100% Nifty 50</button>
+                  <button type="button" onclick="loadPreset('nifty_500')" class="text-xs text-blue-600 hover:underline">100% Nifty 500</button>
+                  <button type="button" onclick="loadPreset('large_mid')" class="text-xs text-blue-600 hover:underline">Large+Mid (60/40)</button>
+                  <button type="button" onclick="loadPreset('multi_cap')" class="text-xs text-blue-600 hover:underline">Multi-Cap</button>
+                  <button type="button" onclick="loadPreset('sector_mix')" class="text-xs text-blue-600 hover:underline">Sector Mix</button>
+                  <button type="button" onclick="loadPreset('factor_blend')" class="text-xs text-blue-600 hover:underline">Factor Blend</button>
                 </div>
                 <div class="mt-2">
                   <div class="flex items-center gap-2">
@@ -714,7 +715,7 @@ let assetsData = [], lastResult = null;
 // ═══════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async () => {
   await loadAssets();       // wait for /assets to populate assetsData BEFORE building selects
-  loadPreset('60_40');
+  loadPreset('large_mid');
   populateAgeDropdown();
   toggleModel();
   toggleBootstrap();
@@ -874,12 +875,14 @@ function updateSummary() {
   summary.innerHTML = html;
 }
 
+// All-equity presets (index-level data only — no bonds in the current data set).
 const PRESETS = {
-  '60_40': [['NIFTY_50', 60], ['SBI_GILT', 40]],
-  '80_20': [['NIFTY_50', 80], ['SBI_GILT', 20]],
-  '100_equity': [['NIFTY_50', 100]],
-  'all_seasons': [['NIFTY_50', 30], ['SBI_GILT', 40], ['GOLD', 15], ['GOLDBEES', 7.5], ['SBI_LIQUID', 7.5]],
-  'core_four': [['NIFTY_50', 48], ['SBI_GILT', 20], ['NIFTY_MIDCAP', 16], ['GOLD', 16]],
+  'nifty_50':      [['NIFTY_50', 100]],
+  'nifty_500':     [['NIFTY_500', 100]],
+  'large_mid':     [['NIFTY_50', 60], ['NIFTY_MIDCAP_150', 40]],
+  'multi_cap':     [['NIFTY_50', 40], ['NIFTY_MIDCAP_150', 30], ['NIFTY_SMALLCAP_250', 30]],
+  'sector_mix':    [['NIFTY_BANK', 25], ['NIFTY_IT', 20], ['NIFTY_PHARMA', 15], ['NIFTY_FMCG', 20], ['NIFTY_AUTO', 20]],
+  'factor_blend':  [['NIFTY_ALPHA_50', 25], ['NIFTY200_MOMENTUM_30', 25], ['NIFTY100_QUALITY_30', 25], ['NIFTY_LOW_VOLATILITY_50', 25]],
 };
 
 function loadPreset(name) {

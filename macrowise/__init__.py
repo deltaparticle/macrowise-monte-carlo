@@ -13,8 +13,8 @@ from macrowise.data.asset_registry import (
     get_asset_name,
     list_asset_aliases,
     list_categories,
-    get_default_portfolio_60_40,
-    PV_TO_INDIAN_ALIAS,
+    assets_in_category,
+    get_asset_data_code,
     resolve_assets,
 )
 from macrowise.viz.charts import (
@@ -40,8 +40,8 @@ __all__ = [
     "get_asset_name",
     "list_asset_aliases",
     "list_categories",
-    "get_default_portfolio_60_40",
-    "PV_TO_INDIAN_ALIAS",
+    "assets_in_category",
+    "get_asset_data_code",
     "resolve_assets",
     "plot_allocation_pie",
     "plot_balance_chart",
