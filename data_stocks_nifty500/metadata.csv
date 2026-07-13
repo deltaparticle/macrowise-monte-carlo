@@ -1,0 +1,501 @@
+symbol,rows,start,end,industry,name
+360ONE,1687,2019-09-19,2026-07-13,Financial Services,360 ONE WAM Ltd.
+3MINDIA,5965,2002-07-01,2026-07-13,Diversified,3M India Ltd.
+AADHARHFC,538,2024-05-15,2026-07-13,Financial Services,Aadhar Housing Finance Ltd.
+AARTIIND,5970,2002-07-01,2026-07-13,Chemicals,Aarti Industries Ltd.
+AAVAS,1919,2018-10-08,2026-07-13,Financial Services,Aavas Financiers Ltd.
+ABB,5970,2002-07-01,2026-07-13,Capital Goods,ABB India Ltd.
+ABBOTINDIA,5940,2002-08-12,2026-07-13,Healthcare,Abbott India Ltd.
+ABCAPITAL,2191,2017-09-01,2026-07-13,Financial Services,Aditya Birla Capital Ltd.
+ABDL,505,2024-07-02,2026-07-13,Fast Moving Consumer Goods,Allied Blenders and Distillers Ltd.
+ABFRL,3204,2013-07-17,2026-07-13,Consumer Services,Aditya Birla Fashion and Retail Ltd.
+ABLBL,263,2025-06-24,2026-07-13,Consumer Services,Aditya Birla Lifestyle Brands Ltd.
+ABREL,6617,2000-01-03,2026-07-13,Realty,Aditya Birla Real Estate Ltd.
+ABSLAMC,1177,2021-10-11,2026-07-13,Financial Services,Aditya Birla Sun Life AMC Ltd.
+ACC,5967,2002-07-01,2026-07-13,Construction Materials,ACC Ltd.
+ACE,4883,2006-09-26,2026-07-13,Capital Goods,Action Construction Equipment Ltd.
+ACMESOLAR,413,2024-11-13,2026-07-13,Power,ACME Solar Holdings Ltd.
+ACUTAAS,1196,2021-09-14,2026-07-13,Healthcare,Acutaas Chemicals Ltd.
+ADANIENSOL,2704,2015-07-31,2026-07-13,Power,Adani Energy Solutions Ltd.
+ADANIENT,5969,2002-07-01,2026-07-13,Metals & Mining,Adani Enterprises Ltd.
+ADANIGREEN,1994,2018-06-18,2026-07-13,Power,Adani Green Energy Ltd.
+ADANIPORTS,4593,2007-11-27,2026-07-13,Services,Adani Ports and Special Economic Zone Ltd.
+ADANIPOWER,4170,2009-08-20,2026-07-13,Power,Adani Power Ltd.
+AEGISLOG,5964,2002-07-01,2026-07-13,Oil Gas & Consumable Fuels,Aegis Logistics Ltd.
+AEGISVOPAK,279,2025-06-02,2026-07-13,Oil Gas & Consumable Fuels,Aegis Vopak Terminals Ltd.
+AFCONS,420,2024-11-04,2026-07-13,Construction,Afcons Infrastructure Ltd.
+AFFLE,1714,2019-08-08,2026-07-13,Information Technology,Affle 3i Ltd.
+AIAENG,5076,2005-12-14,2026-07-13,Capital Goods,AIA Engineering Ltd.
+AIIL,553,2024-04-23,2026-07-13,Financial Services,Authum Investment & Infrastructure Ltd.
+AJANTPHARM,5966,2002-07-01,2026-07-13,Healthcare,Ajanta Pharmaceuticals Ltd.
+ALKEM,2607,2015-12-23,2026-07-13,Healthcare,Alkem Laboratories Ltd.
+AMBER,2088,2018-01-30,2026-07-13,Consumer Durables,Amber Enterprises India Ltd.
+AMBUJACEM,5968,2002-07-01,2026-07-13,Construction Materials,Ambuja Cements Ltd.
+ANANDRATHI,1134,2021-12-14,2026-07-13,Financial Services,Anand Rathi Wealth Ltd.
+ANANTRAJ,4882,2006-09-27,2026-07-13,Realty,Anant Raj Ltd.
+ANGELONE,1430,2020-10-05,2026-07-13,Financial Services,Angel One Ltd.
+ANTHEM,244,2025-07-21,2026-07-13,Healthcare,Anthem Biosciences Ltd.
+ANURAS,1311,2021-03-24,2026-07-13,Chemicals,Anupam Rasayan India Ltd.
+APARINDS,5439,2004-07-12,2026-07-13,Capital Goods,Apar Industries Ltd.
+APLAPOLLO,3598,2011-12-14,2026-07-13,Capital Goods,APL Apollo Tubes Ltd.
+APOLLOHOSP,5967,2002-07-01,2026-07-13,Healthcare,Apollo Hospitals Enterprise Ltd.
+APOLLOTYRE,6099,2002-01-01,2026-07-13,Automobile and Auto Components,Apollo Tyres Ltd.
+APTUS,1210,2021-08-24,2026-07-13,Financial Services,Aptus Value Housing Finance India Ltd.
+ARE&M,5970,2002-07-01,2026-07-13,Automobile and Auto Components,Amara Raja Energy & Mobility Ltd.
+ASAHIINDIA,5973,2002-07-01,2026-07-13,Automobile and Auto Components,Asahi India Glass Ltd.
+ASHOKLEY,5969,2002-07-01,2026-07-13,Capital Goods,Ashok Leyland Ltd.
+ASIANPAINT,5967,2002-07-01,2026-07-13,Consumer Durables,Asian Paints Ltd.
+ASTERDM,2070,2018-02-26,2026-07-13,Healthcare,Aster DM Healthcare Ltd.
+ASTRAL,4766,2007-03-20,2026-07-13,Capital Goods,Astral Ltd.
+ATGL,1900,2018-11-05,2026-07-13,Oil Gas & Consumable Fuels,Adani Total Gas Ltd.
+ATHERENERG,298,2025-05-06,2026-07-13,Automobile and Auto Components,Ather Energy Ltd.
+ATUL,5967,2002-07-01,2026-07-13,Chemicals,Atul Ltd.
+AUBANK,2227,2017-07-11,2026-07-13,Financial Services,AU Small Finance Bank Ltd.
+AUROPHARMA,6617,2000-01-03,2026-07-13,Healthcare,Aurobindo Pharma Ltd.
+AWL,1095,2022-02-08,2026-07-13,Fast Moving Consumer Goods,AWL Agri Business Ltd.
+AXISBANK,6617,2000-01-03,2026-07-13,Financial Services,Axis Bank Ltd.
+BAJAJ-AUTO,5970,2002-07-01,2026-07-13,Automobile and Auto Components,Bajaj Auto Ltd.
+BAJAJFINSV,5936,2002-08-12,2026-07-13,Financial Services,Bajaj Finserv Ltd.
+BAJAJHFL,454,2024-09-16,2026-07-13,Financial Services,Bajaj Housing Finance Ltd.
+BAJAJHLDNG,5936,2002-08-12,2026-07-13,Financial Services,Bajaj Holdings & Investment Ltd.
+BAJFINANCE,5967,2002-07-01,2026-07-13,Financial Services,Bajaj Finance Ltd.
+BALKRISIND,5047,2006-01-27,2026-07-13,Automobile and Auto Components,Balkrishna Industries Ltd.
+BALRAMCHIN,5970,2002-07-01,2026-07-13,Fast Moving Consumer Goods,Balrampur Chini Mills Ltd.
+BANDHANBNK,2050,2018-03-27,2026-07-13,Financial Services,Bandhan Bank Ltd.
+BANKBARODA,5967,2002-07-01,2026-07-13,Financial Services,Bank of Baroda
+BANKINDIA,5967,2002-07-01,2026-07-13,Financial Services,Bank of India
+BATAINDIA,5967,2002-07-01,2026-07-13,Consumer Durables,Bata India Ltd.
+BAYERCROP,4078,2010-01-08,2026-07-13,Chemicals,Bayer Cropscience Ltd.
+BBTC,5968,2002-07-01,2026-07-13,Fast Moving Consumer Goods,Bombay Burmah Trading Corporation Ltd.
+BDL,2052,2018-03-23,2026-07-13,Capital Goods,Bharat Dynamics Ltd.
+BEL,5967,2002-07-01,2026-07-13,Capital Goods,Bharat Electronics Ltd.
+BELRISE,282,2025-05-28,2026-07-13,Automobile and Auto Components,Belrise Industries Ltd.
+BEML,5967,2002-07-01,2026-07-13,Capital Goods,BEML Ltd.
+BERGEPAINT,5969,2002-07-01,2026-07-13,Consumer Durables,Berger Paints India Ltd.
+BHARATFORG,6616,2000-01-03,2026-07-13,Automobile and Auto Components,Bharat Forge Ltd.
+BHARTIARTL,5967,2002-07-01,2026-07-13,Telecommunication,Bharti Airtel Ltd.
+BHARTIHEXA,559,2024-04-12,2026-07-13,Telecommunication,Bharti Hexacom Ltd.
+BHEL,6617,2000-01-03,2026-07-13,Capital Goods,Bharat Heavy Electricals Ltd.
+BIKAJI,904,2022-11-16,2026-07-13,Fast Moving Consumer Goods,Bikaji Foods International Ltd.
+BIOCON,5506,2004-04-07,2026-07-13,Healthcare,Biocon Ltd.
+BLS,2491,2016-06-15,2026-07-13,Consumer Services,BLS International Services Ltd.
+BLUEDART,5967,2002-07-01,2026-07-13,Services,Blue Dart Express Ltd.
+BLUEJET,667,2023-11-01,2026-07-13,Healthcare,Blue Jet Healthcare Ltd.
+BLUESTARCO,5967,2002-07-01,2026-07-13,Consumer Durables,Blue Star Ltd.
+BOSCHLTD,5968,2002-07-01,2026-07-13,Automobile and Auto Components,Bosch Ltd.
+BPCL,6617,2000-01-03,2026-07-13,Oil Gas & Consumable Fuels,Bharat Petroleum Corporation Ltd.
+BRIGADE,4571,2007-12-31,2026-07-13,Realty,Brigade Enterprises Ltd.
+BRITANNIA,6620,2000-01-03,2026-07-13,Fast Moving Consumer Goods,Britannia Industries Ltd.
+BSE,2333,2017-02-03,2026-07-13,Financial Services,BSE Ltd.
+BSOFT,5971,2002-07-01,2026-07-13,Information Technology,Birlasoft Ltd.
+CAMS,1430,2020-10-05,2026-07-13,Financial Services,Computer Age Management Services Ltd.
+CANBK,5842,2002-12-23,2026-07-13,Financial Services,Canara Bank
+CANFINHOME,5967,2002-07-01,2026-07-13,Financial Services,Can Fin Homes Ltd.
+CANHLIFE,183,2025-10-17,2026-07-13,Financial Services,Canara HSBC Life Insurance Company Ltd.
+CAPLIPOINT,2974,2014-06-23,2026-07-13,Healthcare,Caplin Point Laboratories Ltd.
+CARBORUNIV,5968,2002-07-01,2026-07-13,Capital Goods,Carborundum Universal Ltd.
+CARTRADE,1212,2021-08-20,2026-07-13,Consumer Services,Cartrade Tech Ltd.
+CASTROLIND,5940,2002-08-12,2026-07-13,Oil Gas & Consumable Fuels,Castrol India Ltd.
+CCL,5464,2004-06-07,2026-07-13,Fast Moving Consumer Goods,CCL Products (I) Ltd.
+CDSL,2234,2017-06-30,2026-07-13,Financial Services,Central Depository Services (India) Ltd.
+CEATLTD,4547,2008-02-01,2026-07-13,Automobile and Auto Components,Ceat Ltd.
+CEMPRO,5967,2002-07-01,2026-07-13,Construction,Cemindia Projects Ltd.
+CENTRALBK,4661,2007-08-21,2026-07-13,Financial Services,Central Bank of India
+CESC,5967,2002-07-01,2026-07-13,Power,CESC Ltd.
+CGCL,3874,2010-10-29,2026-07-13,Financial Services,Capri Global Capital Ltd.
+CGPOWER,5970,2002-07-01,2026-07-13,Capital Goods,CG Power and Industrial Solutions Ltd.
+CHALET,1835,2019-02-07,2026-07-13,Consumer Services,Chalet Hotels Ltd.
+CHAMBLFERT,5967,2002-07-01,2026-07-13,Chemicals,Chambal Fertilizers & Chemicals Ltd.
+CHENNPETRO,5967,2002-07-01,2026-07-13,Oil Gas & Consumable Fuels,Chennai Petroleum Corporation Ltd.
+CHOICEIN,1053,2022-04-08,2026-07-13,Financial Services,Choice International Ltd.
+CHOLAFIN,5967,2002-07-01,2026-07-13,Financial Services,Cholamandalam Investment and Finance Company Ltd.
+CHOLAHLDNG,5970,2002-07-01,2026-07-13,Financial Services,Cholamandalam Financial Holdings Ltd.
+CIEINDIA,4652,2007-08-30,2026-07-13,Automobile and Auto Components,CIE Automotive India Ltd.
+CIPLA,6619,2000-01-03,2026-07-13,Healthcare,Cipla Ltd.
+CLEAN,1234,2021-07-19,2026-07-13,Chemicals,Clean Science and Technology Ltd.
+COALINDIA,3870,2010-11-04,2026-07-13,Oil Gas & Consumable Fuels,Coal India Ltd.
+COCHINSHIP,2204,2017-08-11,2026-07-13,Capital Goods,Cochin Shipyard Ltd.
+COFORGE,5405,2004-08-30,2026-07-13,Information Technology,Coforge Ltd.
+COHANCE,1572,2020-03-09,2026-07-13,Healthcare,Cohance Lifesciences Ltd.
+COLPAL,5970,2002-07-01,2026-07-13,Fast Moving Consumer Goods,Colgate Palmolive (India) Ltd.
+CONCOR,5967,2002-07-01,2026-07-13,Services,Container Corporation of India Ltd.
+CONCORDBIO,717,2023-08-18,2026-07-13,Healthcare,Concord Biotech Ltd.
+COROMANDEL,5940,2002-08-12,2026-07-13,Chemicals,Coromandel International Ltd.
+CPPLUS,233,2025-08-05,2026-07-13,Capital Goods,Aditya Infotech Ltd.
+CRAFTSMAN,1309,2021-03-25,2026-07-13,Automobile and Auto Components,Craftsman Automation Ltd.
+CREDITACC,1948,2018-08-23,2026-07-13,Financial Services,CreditAccess Grameen Ltd.
+CRISIL,5970,2002-07-01,2026-07-13,Financial Services,CRISIL Ltd.
+CROMPTON,2514,2016-05-13,2026-07-13,Consumer Durables,Crompton Greaves Consumer Electricals Ltd.
+CUB,5970,2002-07-01,2026-07-13,Financial Services,City Union Bank Ltd.
+CUMMINSIND,5967,2002-07-01,2026-07-13,Capital Goods,Cummins India Ltd.
+CYIENT,4924,2006-07-28,2026-07-13,Information Technology,Cyient Ltd.
+DABUR,5967,2002-07-01,2026-07-13,Fast Moving Consumer Goods,Dabur India Ltd.
+DALBHARAT,1867,2018-12-21,2026-07-13,Construction Materials,Dalmia Bharat Ltd.
+DATAPATTNS,1126,2021-12-24,2026-07-13,Capital Goods,Data Patterns (India) Ltd.
+DCMSHRIRAM,5966,2002-07-01,2026-07-13,Diversified,DCM Shriram Ltd.
+DEEPAKFERT,6617,2000-01-03,2026-07-13,Chemicals,Deepak Fertilisers & Petrochemicals Corp. Ltd.
+DEEPAKNTR,3895,2010-09-29,2026-07-13,Chemicals,Deepak Nitrite Ltd.
+DELHIVERY,1025,2022-05-24,2026-07-13,Services,Delhivery Ltd.
+DEVYANI,1215,2021-08-16,2026-07-13,Consumer Services,Devyani International Ltd.
+DIVISLAB,5787,2003-03-12,2026-07-13,Healthcare,Divi's Laboratories Ltd.
+DIXON,2180,2017-09-18,2026-07-13,Consumer Durables,Dixon Technologies (India) Ltd.
+DLF,4693,2007-07-05,2026-07-13,Realty,DLF Ltd.
+DMART,2303,2017-03-21,2026-07-13,Consumer Services,Avenue Supermarts Ltd.
+DOMS,633,2023-12-20,2026-07-13,Fast Moving Consumer Goods,DOMS Industries Ltd.
+DRREDDY,6617,2000-01-03,2026-07-13,Healthcare,Dr. Reddy's Laboratories Ltd.
+ECLERX,4571,2007-12-31,2026-07-13,Services,eClerx Services Ltd.
+EICHERMOT,6617,2000-01-03,2026-07-13,Automobile and Auto Components,Eicher Motors Ltd.
+EIDPARRY,5969,2002-07-01,2026-07-13,Fast Moving Consumer Goods,E.I.D. Parry (India) Ltd.
+EIHOTEL,6620,2000-01-03,2026-07-13,Consumer Services,EIH Ltd.
+ELECON,4880,2006-09-29,2026-07-13,Capital Goods,Elecon Engineering Co. Ltd.
+ELGIEQUIP,5967,2002-07-01,2026-07-13,Capital Goods,Elgi Equipments Ltd.
+EMAMILTD,4920,2006-08-03,2026-07-13,Fast Moving Consumer Goods,Emami Ltd.
+EMCURE,499,2024-07-10,2026-07-13,Healthcare,Emcure Pharmaceuticals Ltd.
+EMMVEE,163,2025-11-18,2026-07-13,Capital Goods,Emmvee Photovoltaic Power Ltd.
+ENDURANCE,2407,2016-10-19,2026-07-13,Automobile and Auto Components,Endurance Technologies Ltd.
+ENGINERSIN,6620,2000-01-03,2026-07-13,Construction,Engineers India Ltd.
+ENRIN,266,2025-06-19,2026-07-13,Capital Goods,Siemens Energy India Ltd.
+ERIS,2232,2017-06-30,2026-07-13,Healthcare,Eris Lifesciences Ltd.
+ESCORTS,6617,2000-01-03,2026-07-13,Capital Goods,Escorts Kubota Ltd.
+ETERNAL,1231,2021-07-23,2026-07-13,Consumer Services,Eternal Ltd.
+EXIDEIND,5970,2002-07-01,2026-07-13,Automobile and Auto Components,Exide Industries Ltd.
+FACT,5967,2002-07-01,2026-07-13,Chemicals,Fertilisers and Chemicals Travancore Ltd.
+FEDERALBNK,6619,2000-01-03,2026-07-13,Financial Services,Federal Bank Ltd.
+FINCABLES,5970,2002-07-01,2026-07-13,Capital Goods,Finolex Cables Ltd.
+FIRSTCRY,477,2024-08-13,2026-07-13,Consumer Services,Brainbees Solutions Ltd.
+FIVESTAR,901,2022-11-21,2026-07-13,Financial Services,Five-Star Business Finance Ltd.
+FLUOROCHEM,1671,2019-10-16,2026-07-13,Chemicals,Gujarat Fluorochemicals Ltd.
+FORCEMOT,1668,2019-08-19,2026-07-13,Automobile and Auto Components,Force Motors Ltd.
+FORTIS,4734,2007-05-09,2026-07-13,Healthcare,Fortis Healthcare Ltd.
+FSL,4784,2007-02-22,2026-07-13,Services,Firstsource Solutions Ltd.
+GABRIEL,5242,2005-04-20,2026-07-13,Automobile and Auto Components,Gabriel India Ltd.
+GAIL,6617,2000-01-03,2026-07-13,Oil Gas & Consumable Fuels,GAIL (India) Ltd.
+GALLANTT,5002,2006-04-04,2026-07-13,Capital Goods,Gallantt Ispat Ltd.
+GESHIP,5970,2002-07-01,2026-07-13,Services,Great Eastern Shipping Co. Ltd.
+GICRE,2155,2017-10-25,2026-07-13,Financial Services,General Insurance Corporation of India
+GILLETTE,5967,2002-07-01,2026-07-13,Fast Moving Consumer Goods,Gillette India Ltd.
+GLAND,1395,2020-11-20,2026-07-13,Healthcare,Gland Pharma Ltd.
+GLAXO,5967,2002-07-01,2026-07-13,Healthcare,Glaxosmithkline Pharmaceuticals Ltd.
+GLENMARK,5970,2002-07-01,2026-07-13,Healthcare,Glenmark Pharmaceuticals Ltd.
+GMDCLTD,5970,2002-07-01,2026-07-13,Metals & Mining,Gujarat Mineral Development Corporation Ltd.
+GMRAIRPORT,4909,2006-08-21,2026-07-13,Services,GMR Airports Ltd.
+GODFRYPHLP,6617,2000-01-03,2026-07-13,Fast Moving Consumer Goods,Godfrey Phillips India Ltd.
+GODIGIT,532,2024-05-23,2026-07-13,Financial Services,Go Digit General Insurance Ltd.
+GODREJCP,5970,2002-07-01,2026-07-13,Fast Moving Consumer Goods,Godrej Consumer Products Ltd.
+GODREJIND,5970,2002-07-01,2026-07-13,Diversified,Godrej Industries Ltd.
+GODREJPROP,4081,2010-01-05,2026-07-13,Realty,Godrej Properties Ltd.
+GPIL,4991,2006-04-25,2026-07-13,Capital Goods,Godawari Power & Ispat Ltd.
+GRANULES,5198,2005-06-20,2026-07-13,Healthcare,Granules India Ltd.
+GRAPHITE,5968,2002-07-01,2026-07-13,Capital Goods,Graphite India Ltd.
+GRASIM,5967,2002-07-01,2026-07-13,Construction Materials,Grasim Industries Ltd.
+GRAVITA,3863,2010-11-16,2026-07-13,Metals & Mining,Gravita India Ltd.
+GROWW,167,2025-11-12,2026-07-13,Financial Services,Billionbrains Garage Ventures Ltd.
+GRSE,1908,2018-10-24,2026-07-13,Capital Goods,Garden Reach Shipbuilders & Engineers Ltd.
+GVT&D,5940,2002-08-12,2026-07-13,Capital Goods,GE Vernova T&D India Ltd.
+HAL,2048,2018-04-02,2026-07-13,Capital Goods,Hindustan Aeronautics Ltd.
+HAVELLS,5968,2002-07-01,2026-07-13,Consumer Durables,Havells India Ltd.
+HBLENGINE,4816,2007-01-04,2026-07-13,Capital Goods,HBL Engineering Ltd.
+HCLTECH,5941,2002-08-12,2026-07-13,Information Technology,HCL Technologies Ltd.
+HDBFS,257,2025-07-02,2026-07-13,Financial Services,HDB Financial Services Ltd.
+HDFCAMC,1959,2018-08-06,2026-07-13,Financial Services,HDFC Asset Management Company Ltd.
+HDFCBANK,6620,2000-01-03,2026-07-13,Financial Services,HDFC Bank Ltd.
+HDFCLIFE,2138,2017-11-17,2026-07-13,Financial Services,HDFC Life Insurance Company Ltd.
+HEG,5967,2002-07-01,2026-07-13,Capital Goods,H.E.G. Ltd.
+HEROMOTOCO,5967,2002-07-01,2026-07-13,Automobile and Auto Components,Hero MotoCorp Ltd.
+HEXT,344,2025-02-19,2026-07-13,Information Technology,Hexaware Technologies Ltd.
+HFCL,5936,2002-08-12,2026-07-13,Telecommunication,HFCL Ltd.
+HINDALCO,6620,2000-01-03,2026-07-13,Metals & Mining,Hindalco Industries Ltd.
+HINDCOPPER,4078,2010-01-08,2026-07-13,Metals & Mining,Hindustan Copper Ltd.
+HINDPETRO,6617,2000-01-03,2026-07-13,Oil Gas & Consumable Fuels,Hindustan Petroleum Corporation Ltd.
+HINDUNILVR,6620,2000-01-03,2026-07-13,Fast Moving Consumer Goods,Hindustan Unilever Ltd.
+HINDZINC,5940,2002-08-12,2026-07-13,Metals & Mining,Hindustan Zinc Ltd.
+HOMEFIRST,1345,2021-02-03,2026-07-13,Financial Services,Home First Finance Company India Ltd.
+HONASA,662,2023-11-07,2026-07-13,Fast Moving Consumer Goods,Honasa Consumer Ltd.
+HONAUT,5968,2002-07-01,2026-07-13,Capital Goods,Honeywell Automation India Ltd.
+HSCL,4778,2007-03-02,2026-07-13,Chemicals,Himadri Speciality Chemical Ltd.
+HUDCO,2263,2017-05-19,2026-07-13,Financial Services,Housing & Urban Development Corporation Ltd.
+HYUNDAI,429,2024-10-22,2026-07-13,Automobile and Auto Components,Hyundai Motor India Ltd.
+ICICIAMC,140,2025-12-19,2026-07-13,Financial Services,ICICI Prudential Asset Management Company Ltd.
+ICICIBANK,5967,2002-07-01,2026-07-13,Financial Services,ICICI Bank Ltd.
+ICICIGI,2173,2017-09-27,2026-07-13,Financial Services,ICICI Lombard General Insurance Company Ltd.
+ICICIPRULI,2419,2016-09-29,2026-07-13,Financial Services,ICICI Prudential Life Insurance Company Ltd.
+IDBI,6620,2000-01-03,2026-07-13,Financial Services,IDBI Bank Ltd.
+IDEA,4773,2007-03-09,2026-07-13,Telecommunication,Vodafone Idea Ltd.
+IDFCFIRSTB,2638,2015-11-06,2026-07-13,Financial Services,IDFC First Bank Ltd.
+IEX,2157,2017-10-23,2026-07-13,Financial Services,Indian Energy Exchange Ltd.
+IFCI,5967,2002-07-01,2026-07-13,Financial Services,IFCI Ltd.
+IGIL,382,2024-12-30,2026-07-13,Services,International Gemological Institute Ltd.
+IGL,5579,2003-12-26,2026-07-13,Oil Gas & Consumable Fuels,Indraprastha Gas Ltd.
+IIFL,5223,2005-05-17,2026-07-13,Financial Services,IIFL Finance Ltd.
+IKS,388,2024-12-19,2026-07-13,Information Technology,Inventurus Knowledge Solutions Ltd.
+INDGN,540,2024-05-13,2026-07-13,Healthcare,Indegene Ltd.
+INDHOTEL,5970,2002-07-01,2026-07-13,Consumer Services,Indian Hotels Co. Ltd.
+INDIACEM,6617,2000-01-03,2026-07-13,Construction Materials,India Cements Ltd.
+INDIAMART,1739,2019-07-04,2026-07-13,Consumer Services,Indiamart Intermesh Ltd.
+INDIANB,4779,2007-03-01,2026-07-13,Financial Services,Indian Bank
+INDIGO,2635,2015-11-10,2026-07-13,Services,InterGlobe Aviation Ltd.
+INDUSINDBK,5968,2002-07-01,2026-07-13,Financial Services,IndusInd Bank Ltd.
+INDUSTOWER,3342,2012-12-28,2026-07-13,Telecommunication,Indus Towers Ltd.
+INFY,6620,2000-01-03,2026-07-13,Information Technology,Infosys Ltd.
+INOXWIND,2783,2015-04-09,2026-07-13,Capital Goods,Inox Wind Ltd.
+INTELLECT,2857,2014-12-18,2026-07-13,Information Technology,Intellect Design Arena Ltd.
+IOB,5967,2002-07-01,2026-07-13,Financial Services,Indian Overseas Bank
+IOC,6617,2000-01-03,2026-07-13,Oil Gas & Consumable Fuels,Indian Oil Corporation Ltd.
+IPCALAB,6616,2000-01-03,2026-07-13,Healthcare,Ipca Laboratories Ltd.
+IRB,4531,2008-02-25,2026-07-13,Construction,IRB Infrastructure Developers Ltd.
+IRCON,1924,2018-09-28,2026-07-13,Construction,IRCON International Ltd.
+IRCTC,1673,2019-10-14,2026-07-13,Consumer Services,Indian Railway Catering And Tourism Corporation Ltd.
+IREDA,649,2023-11-29,2026-07-13,Financial Services,Indian Renewable Energy Development Agency Ltd.
+IRFC,1349,2021-01-29,2026-07-13,Financial Services,Indian Railway Finance Corporation Ltd.
+ITC,6617,2000-01-03,2026-07-13,Fast Moving Consumer Goods,ITC Ltd.
+ITCHOTELS,360,2025-01-29,2026-07-13,Consumer Services,ITC Hotels Ltd.
+ITI,5967,2002-07-01,2026-07-13,Telecommunication,ITI Ltd.
+J&KBANK,5936,2002-08-12,2026-07-13,Financial Services,Jammu & Kashmir Bank Ltd.
+JAINREC,192,2025-10-06,2026-07-13,Metals & Mining,Jain Resource Recycling Ltd.
+JBCHEPHARM,5967,2002-07-01,2026-07-13,Healthcare,J.B. Chemicals & Pharmaceuticals Ltd.
+JBMA,5326,2004-12-17,2026-07-13,Automobile and Auto Components,JBM Auto Ltd.
+JINDALSAW,5967,2002-07-01,2026-07-13,Capital Goods,Jindal Saw Ltd.
+JINDALSTEL,6620,2000-01-03,2026-07-13,Metals & Mining,Jindal Steel Ltd.
+JIOFIN,716,2023-08-21,2026-07-13,Financial Services,Jio Financial Services Ltd.
+JKCEMENT,5017,2006-03-14,2026-07-13,Construction Materials,J.K. Cement Ltd.
+JKTYRE,5460,2004-06-14,2026-07-13,Automobile and Auto Components,JK Tyre & Industries Ltd.
+JMFINANCIL,4874,2006-10-10,2026-07-13,Financial Services,JM Financial Ltd.
+JPPOWER,5244,2005-04-18,2026-07-13,Power,Jaiprakash Power Ventures Ltd.
+JSL,5608,2003-11-17,2026-07-13,Metals & Mining,Jindal Stainless Ltd.
+JSWCEMENT,226,2025-08-14,2026-07-13,Construction Materials,JSW Cement Ltd.
+JSWDULUX,5967,2002-07-01,2026-07-13,Consumer Durables,JSW Dulux Ltd.
+JSWENERGY,4081,2010-01-04,2026-07-13,Power,JSW Energy Ltd.
+JSWINFRA,687,2023-10-03,2026-07-13,Services,JSW Infrastructure Ltd.
+JSWSTEEL,5747,2003-05-08,2026-07-13,Metals & Mining,JSW Steel Ltd.
+JUBLFOOD,4057,2010-02-08,2026-07-13,Consumer Services,Jubilant Foodworks Ltd.
+JUBLINGREA,1315,2021-03-19,2026-07-13,Chemicals,Jubilant Ingrevia Ltd.
+JUBLPHARMA,5969,2002-07-01,2026-07-13,Healthcare,Jubilant Pharmova Ltd.
+JWL,3883,2010-10-18,2026-07-13,Capital Goods,Jupiter Wagons Ltd.
+JYOTICNC,616,2024-01-16,2026-07-13,Capital Goods,Jyoti CNC Automation Ltd.
+KAJARIACER,5967,2002-07-01,2026-07-13,Consumer Durables,Kajaria Ceramics Ltd.
+KALYANKJIL,1310,2021-03-26,2026-07-13,Consumer Durables,Kalyan Jewellers India Ltd.
+KARURVYSYA,6617,2000-01-03,2026-07-13,Financial Services,Karur Vysya Bank Ltd.
+KAYNES,901,2022-11-22,2026-07-13,Capital Goods,Kaynes Technology India Ltd.
+KEC,5936,2002-08-12,2026-07-13,Construction,Kec International Ltd.
+KEI,5011,2006-03-23,2026-07-13,Capital Goods,KEI Industries Ltd.
+KFINTECH,874,2022-12-29,2026-07-13,Financial Services,Kfin Technologies Ltd.
+KIMS,1249,2021-06-28,2026-07-13,Healthcare,Krishna Institute of Medical Sciences Ltd.
+KIRLOSENG,5936,2002-08-12,2026-07-13,Capital Goods,Kirloskar Oil Eng Ltd.
+KOTAKBANK,6229,2001-07-02,2026-07-13,Financial Services,Kotak Mahindra Bank Ltd.
+KPIL,5967,2002-07-01,2026-07-13,Construction,Kalpataru Projects International Ltd.
+KPITTECH,1789,2019-04-22,2026-07-13,Information Technology,KPIT Technologies Ltd.
+KPRMILL,4656,2007-08-28,2026-07-13,Textiles,K.P.R. Mill Ltd.
+LALPATHLAB,2608,2015-12-23,2026-07-13,Healthcare,Dr. Lal Path Labs Ltd.
+LATENTVIEW,1149,2021-11-23,2026-07-13,Information Technology,Latent View Analytics Ltd.
+LAURUSLABS,2366,2016-12-19,2026-07-13,Healthcare,Laurus Labs Ltd.
+LEMONTREE,2043,2018-04-09,2026-07-13,Consumer Services,Lemon Tree Hotels Ltd.
+LENSKART,169,2025-11-10,2026-07-13,Consumer Services,Lenskart Solutions Ltd.
+LGEINDIA,186,2025-10-14,2026-07-13,Consumer Durables,LG Electronics India Ltd.
+LICHSGFIN,5967,2002-07-01,2026-07-13,Financial Services,LIC Housing Finance Ltd.
+LICI,1030,2022-05-17,2026-07-13,Financial Services,Life Insurance Corporation of India
+LINDEINDIA,6513,2000-05-31,2026-07-13,Chemicals,Linde India Ltd.
+LLOYDSME,740,2023-07-17,2026-07-13,Metals & Mining,Lloyds Metals And Energy Ltd.
+LODHA,1297,2021-04-19,2026-07-13,Realty,Lodha Developers Ltd.
+LT,5970,2002-07-01,2026-07-13,Construction,Larsen & Toubro Ltd.
+LTF,3677,2011-08-12,2026-07-13,Financial Services,L&T Finance Ltd.
+LTFOODS,4826,2006-12-19,2026-07-13,Fast Moving Consumer Goods,LT Foods Ltd.
+LTM,2466,2016-07-21,2026-07-13,Information Technology,LTM Ltd.
+LTTS,2423,2016-09-23,2026-07-13,Information Technology,L&T Technology Services Ltd.
+LUPIN,6178,2001-09-10,2026-07-13,Healthcare,Lupin Ltd.
+M&M,6618,2000-01-03,2026-07-13,Automobile and Auto Components,Mahindra & Mahindra Ltd.
+M&MFIN,5015,2006-03-17,2026-07-13,Financial Services,Mahindra & Mahindra Financial Services Ltd.
+MAHABANK,5503,2004-04-12,2026-07-13,Financial Services,Bank of Maharashtra
+MANAPPURAM,3960,2010-06-30,2026-07-13,Financial Services,Manappuram Finance Ltd.
+MANKIND,787,2023-05-09,2026-07-13,Healthcare,Mankind Pharma Ltd.
+MAPMYINDIA,1128,2021-12-21,2026-07-13,Information Technology,C.E. Info Systems Ltd.
+MARICO,6620,2000-01-03,2026-07-13,Fast Moving Consumer Goods,Marico Ltd.
+MARUTI,5703,2003-07-09,2026-07-13,Automobile and Auto Components,Maruti Suzuki India Ltd.
+MAXHEALTH,1460,2020-08-21,2026-07-13,Healthcare,Max Healthcare Institute Ltd.
+MAZDOCK,1425,2020-10-12,2026-07-13,Capital Goods,Mazagoan Dock Shipbuilders Ltd.
+MCX,3539,2012-03-09,2026-07-13,Financial Services,Multi Commodity Exchange of India Ltd.
+MEDANTA,902,2022-11-18,2026-07-13,Healthcare,Global Health Ltd.
+MEESHO,147,2025-12-10,2026-07-13,Consumer Services,Meesho Ltd.
+MFSL,6617,2000-01-03,2026-07-13,Financial Services,Max Financial Services Ltd.
+MGL,2478,2016-07-01,2026-07-13,Oil Gas & Consumable Fuels,Mahanagar Gas Ltd.
+MINDACORP,3532,2012-03-19,2026-07-13,Automobile and Auto Components,Minda Corporation Ltd.
+MMTC,4078,2010-01-08,2026-07-13,Services,MMTC Ltd.
+MOTHERSON,5968,2002-07-01,2026-07-13,Automobile and Auto Components,Samvardhana Motherson International Ltd.
+MOTILALOFS,4646,2007-09-11,2026-07-13,Financial Services,Motilal Oswal Financial Services Ltd.
+MPHASIS,5967,2002-07-01,2026-07-13,Information Technology,MphasiS Ltd.
+MRF,5966,2002-07-01,2026-07-13,Automobile and Auto Components,MRF Ltd.
+MRPL,6617,2000-01-03,2026-07-13,Oil Gas & Consumable Fuels,Mangalore Refinery & Petrochemicals Ltd.
+MSUMI,1063,2022-03-28,2026-07-13,Automobile and Auto Components,Motherson Sumi Wiring India Ltd.
+MUTHOOTFIN,3747,2011-05-06,2026-07-13,Financial Services,Muthoot Finance Ltd.
+NAM-INDIA,2147,2017-11-06,2026-07-13,Financial Services,Nippon Life India Asset Management Ltd.
+NATCOPHARM,6618,2000-01-03,2026-07-13,Healthcare,NATCO Pharma Ltd.
+NATIONALUM,6617,2000-01-03,2026-07-13,Metals & Mining,National Aluminium Co. Ltd.
+NAUKRI,4846,2006-11-21,2026-07-13,Consumer Services,Info Edge (India) Ltd.
+NAVA,5967,2002-07-01,2026-07-13,Power,Nava Ltd.
+NAVINFLUOR,4716,2007-06-01,2026-07-13,Chemicals,Navin Fluorine International Ltd.
+NBCC,3517,2012-04-12,2026-07-13,Construction,NBCC (India) Ltd.
+NCC,5938,2002-08-12,2026-07-13,Construction,NCC Ltd.
+NESTLEIND,5940,2002-08-12,2026-07-13,Fast Moving Consumer Goods,Nestle India Ltd.
+NETWEB,732,2023-07-27,2026-07-13,Information Technology,Netweb Technologies India Ltd.
+NEULANDLAB,4377,2008-10-13,2026-07-13,Healthcare,Neuland Laboratories Ltd.
+NEWGEN,2089,2018-01-29,2026-07-13,Information Technology,Newgen Software Technologies Ltd.
+NH,2599,2016-01-06,2026-07-13,Healthcare,Narayana Hrudayalaya Ltd.
+NHPC,4162,2009-09-01,2026-07-13,Power,NHPC Ltd.
+NIACL,2142,2017-11-13,2026-07-13,Financial Services,The New India Assurance Company Ltd.
+NIVABUPA,411,2024-11-14,2026-07-13,Financial Services,Niva Bupa Health Insurance Company Ltd.
+NLCINDIA,6452,2000-08-23,2026-07-13,Power,NLC India Ltd.
+NMDC,4526,2008-03-03,2026-07-13,Metals & Mining,NMDC Ltd.
+NSLNISP,838,2023-02-20,2026-07-13,Metals & Mining,NMDC Steel Ltd.
+NTPC,5356,2004-11-05,2026-07-13,Power,NTPC Ltd.
+NTPCGREEN,405,2024-11-27,2026-07-13,Power,NTPC Green Energy Ltd.
+NUVAMA,691,2023-09-26,2026-07-13,Financial Services,Nuvama Wealth Management Ltd.
+NUVOCO,1211,2021-08-23,2026-07-13,Construction Materials,Nuvoco Vistas Corporation Ltd.
+NYKAA,1157,2021-11-10,2026-07-13,Consumer Services,FSN E-Commerce Ventures Ltd.
+OBEROIRLTY,3880,2010-10-20,2026-07-13,Realty,Oberoi Realty Ltd.
+OFSS,5969,2002-06-28,2026-07-13,Information Technology,Oracle Financial Services Software Ltd.
+OIL,4143,2009-09-30,2026-07-13,Oil Gas & Consumable Fuels,Oil India Ltd.
+OLAELEC,479,2024-08-09,2026-07-13,Automobile and Auto Components,Ola Electric Mobility Ltd.
+OLECTRA,5967,2002-07-01,2026-07-13,Automobile and Auto Components,Olectra Greentech Ltd.
+ONESOURCE,364,2025-01-24,2026-07-13,Healthcare,Onesource Specialty Pharma Ltd.
+ONGC,6617,2000-01-03,2026-07-13,Oil Gas & Consumable Fuels,Oil & Natural Gas Corporation Ltd.
+PAGEIND,4766,2007-03-16,2026-07-13,Textiles,Page Industries Ltd.
+PARADEEP,1022,2022-05-27,2026-07-13,Chemicals,Paradeep Phosphates Ltd.
+PATANJALI,5967,2002-07-01,2026-07-13,Fast Moving Consumer Goods,Patanjali Foods Ltd.
+PAYTM,1151,2021-11-18,2026-07-13,Financial Services,One 97 Communications Ltd.
+PCBL,5967,2002-07-01,2026-07-13,Chemicals,PCBL Chemical Ltd.
+PERSISTENT,4020,2010-04-06,2026-07-13,Information Technology,Persistent Systems Ltd.
+PETRONET,5516,2004-03-26,2026-07-13,Oil Gas & Consumable Fuels,Petronet LNG Ltd.
+PFC,4783,2007-02-23,2026-07-13,Financial Services,Power Finance Corporation Ltd.
+PFIZER,5966,2002-07-01,2026-07-13,Healthcare,Pfizer Ltd.
+PGEL,3649,2011-09-26,2026-07-13,Consumer Durables,PG Electroplast Ltd.
+PHOENIXLTD,4742,2007-04-23,2026-07-13,Realty,Phoenix Mills Ltd.
+PIDILITIND,5967,2002-07-01,2026-07-13,Chemicals,Pidilite Industries Ltd.
+PIIND,3719,2011-06-15,2026-07-13,Chemicals,PI Industries Ltd.
+PINELABS,165,2025-11-14,2026-07-13,Financial Services,Pine Labs Ltd.
+PIRAMALFIN,170,2025-11-07,2026-07-13,Financial Services,Piramal Finance Ltd.
+PNB,5969,2002-07-01,2026-07-13,Financial Services,Punjab National Bank
+PNBHOUSING,2395,2016-11-07,2026-07-13,Financial Services,PNB Housing Finance Ltd.
+POLICYBZR,1153,2021-11-15,2026-07-13,Financial Services,PB Fintech Ltd.
+POLYCAB,1791,2019-04-16,2026-07-13,Capital Goods,Polycab India Ltd.
+POLYMED,3603,2011-12-07,2026-07-13,Healthcare,Poly Medicure Ltd.
+POONAWALLA,5493,2004-04-27,2026-07-13,Financial Services,Poonawalla Fincorp Ltd.
+POWERGRID,4629,2007-10-05,2026-07-13,Power,Power Grid Corporation of India Ltd.
+POWERINDIA,1558,2020-03-30,2026-07-13,Capital Goods,Hitachi Energy India Ltd.
+PPLPHARMA,923,2022-10-19,2026-07-13,Healthcare,Piramal Pharma Ltd.
+PREMIERENE,463,2024-09-03,2026-07-13,Capital Goods,Premier Energies Ltd.
+PRESTIGE,3876,2010-10-27,2026-07-13,Realty,Prestige Estates Projects Ltd.
+PTCIL,764,2023-06-09,2026-07-13,Capital Goods,PTC Industries Ltd.
+PVRINOX,5062,2006-01-04,2026-07-13,Media Entertainment & Publication,PVR INOX Ltd.
+PWL,163,2025-11-18,2026-07-13,Consumer Services,Physicswallah Ltd.
+RADICO,5717,2003-06-18,2026-07-13,Fast Moving Consumer Goods,Radico Khaitan Ltd
+RAILTEL,1329,2021-02-26,2026-07-13,Telecommunication,Railtel Corporation Of India Ltd.
+RAINBOW,1034,2022-05-10,2026-07-13,Healthcare,Rainbow Childrens Medicare Ltd.
+RAMCOCEM,5967,2002-07-01,2026-07-13,Construction Materials,The Ramco Cements Ltd.
+RBLBANK,2438,2016-08-31,2026-07-13,Financial Services,RBL Bank Ltd.
+RECLTD,4520,2008-03-12,2026-07-13,Financial Services,REC Ltd.
+REDINGTON,4788,2007-02-15,2026-07-13,Services,Redington Ltd.
+RELIANCE,6617,2000-01-03,2026-07-13,Oil Gas & Consumable Fuels,Reliance Industries Ltd.
+RHIM,3537,2012-03-12,2026-07-13,Capital Goods,RHI MAGNESITA INDIA LTD.
+RITES,1983,2018-07-03,2026-07-13,Construction,RITES Ltd.
+RKFORGE,5487,2004-05-05,2026-07-13,Automobile and Auto Components,Ramkrishna Forgings Ltd.
+RPOWER,4541,2008-02-11,2026-07-13,Power,Reliance Power Ltd.
+RRKABEL,693,2023-09-20,2026-07-13,Capital Goods,R R Kabel Ltd.
+RVNL,1794,2019-04-11,2026-07-13,Construction,Rail Vikas Nigam Ltd.
+SAGILITY,414,2024-11-12,2026-07-13,Information Technology,Sagility Ltd.
+SAIL,6620,2000-01-03,2026-07-13,Metals & Mining,Steel Authority of India Ltd.
+SAILIFE,390,2024-12-18,2026-07-13,Healthcare,Sai Life Sciences Ltd.
+SAMMAANCAP,3200,2013-07-23,2026-07-13,Financial Services,Sammaan Capital Ltd.
+SAPPHIRE,1151,2021-11-18,2026-07-13,Consumer Services,Sapphire Foods India Ltd.
+SARDAEN,4101,2009-12-03,2026-07-13,Metals & Mining,Sarda Energy and Minerals Ltd.
+SAREGAMA,5966,2002-07-01,2026-07-13,Media Entertainment & Publication,Saregama India Ltd
+SBFC,718,2023-08-16,2026-07-13,Financial Services,SBFC Finance Ltd.
+SBICARD,1568,2020-03-16,2026-07-13,Financial Services,SBI Cards and Payment Services Ltd.
+SBILIFE,2170,2017-10-03,2026-07-13,Financial Services,SBI Life Insurance Company Ltd.
+SBIN,6618,2000-01-03,2026-07-13,Financial Services,State Bank of India
+SCHAEFFLER,5967,2002-07-01,2026-07-13,Automobile and Auto Components,Schaeffler India Ltd.
+SCHNEIDER,3532,2012-03-20,2026-07-13,Capital Goods,Schneider Electric Infrastructure Ltd.
+SCI,5967,2002-07-01,2026-07-13,Services,Shipping Corporation of India Ltd.
+SHREECEM,6227,2001-07-02,2026-07-13,Construction Materials,Shree Cement Ltd.
+SHRIRAMFIN,5970,2002-07-01,2026-07-13,Financial Services,Shriram Finance Ltd.
+SHYAMMETL,1251,2021-06-24,2026-07-13,Capital Goods,Shyam Metalics and Energy Ltd.
+SIEMENS,6619,2000-01-03,2026-07-13,Capital Goods,Siemens Ltd.
+SIGNATURE,688,2023-09-27,2026-07-13,Realty,Signatureglobal (India) Ltd.
+SJVN,3989,2010-05-20,2026-07-13,Power,SJVN Ltd.
+SOBHA,4824,2006-12-20,2026-07-13,Realty,Sobha Ltd.
+SOLARINDS,5003,2006-04-03,2026-07-13,Chemicals,Solar Industries India Ltd.
+SONACOMS,1251,2021-06-24,2026-07-13,Automobile and Auto Components,Sona BLW Precision Forgings Ltd.
+SONATSOFTW,5967,2002-07-01,2026-07-13,Information Technology,Sonata Software Ltd.
+SPLPETRO,5967,2002-07-01,2026-07-13,Chemicals,Supreme Petrochem Ltd.
+SRF,5967,2002-07-01,2026-07-13,Chemicals,SRF Ltd.
+STARHEALTH,1136,2021-12-10,2026-07-13,Financial Services,Star Health and Allied Insurance Company Ltd.
+SUMICHEM,1601,2020-01-27,2026-07-13,Chemicals,Sumitomo Chemical India Ltd.
+SUNDARMFIN,5967,2002-07-01,2026-07-13,Financial Services,Sundaram Finance Ltd.
+SUNPHARMA,6620,2000-01-03,2026-07-13,Healthcare,Sun Pharmaceutical Industries Ltd.
+SUNTV,4992,2006-04-24,2026-07-13,Media Entertainment & Publication,Sun TV Network Ltd.
+SUPREMEIND,5967,2002-07-01,2026-07-13,Capital Goods,Supreme Industries Ltd.
+SUZLON,5115,2005-10-19,2026-07-13,Capital Goods,Suzlon Energy Ltd.
+SWANCORP,3485,2012-05-29,2026-07-13,Chemicals,Swan Corp Ltd.
+SWIGGY,413,2024-11-13,2026-07-13,Consumer Services,Swiggy Ltd.
+SYNGENE,2697,2015-08-11,2026-07-13,Healthcare,Syngene International Ltd.
+SYRMA,959,2022-08-26,2026-07-13,Capital Goods,Syrma SGS Technology Ltd.
+TARIL,4572,2007-12-28,2026-07-13,Capital Goods,Transformers And Rectifiers (India) Ltd.
+TATACAP,187,2025-10-13,2026-07-13,Financial Services,Tata Capital Ltd.
+TATACHEM,6620,2000-01-03,2026-07-13,Chemicals,Tata Chemicals Ltd.
+TATACOMM,5967,2002-07-01,2026-07-13,Telecommunication,Tata Communications Ltd.
+TATACONSUM,6617,2000-01-03,2026-07-13,Fast Moving Consumer Goods,Tata Consumer Products Ltd.
+TATAELXSI,5967,2002-07-01,2026-07-13,Information Technology,Tata Elxsi Ltd.
+TATAINVEST,6620,2000-01-03,2026-07-13,Financial Services,Tata Investment Corporation Ltd.
+TATAPOWER,6617,2000-01-03,2026-07-13,Power,Tata Power Co. Ltd.
+TATASTEEL,6620,2000-01-03,2026-07-13,Metals & Mining,Tata Steel Ltd.
+TATATECH,648,2023-11-30,2026-07-13,Information Technology,Tata Technologies Ltd.
+TBOTEK,538,2024-05-15,2026-07-13,Consumer Services,TBO Tek Ltd.
+TCS,5938,2002-08-12,2026-07-13,Information Technology,Tata Consultancy Services Ltd.
+TECHM,4904,2006-08-28,2026-07-13,Information Technology,Tech Mahindra Ltd.
+TECHNOE,4758,2007-04-02,2026-07-13,Construction,Techno Electric & Engineering Company Ltd.
+TEGA,1134,2021-12-13,2026-07-13,Capital Goods,Tega Industries Ltd.
+TEJASNET,2237,2017-06-27,2026-07-13,Telecommunication,Tejas Networks Ltd.
+TENNIND,162,2025-11-19,2026-07-13,Automobile and Auto Components,Tenneco Clean Air India Ltd.
+THELEELA,278,2025-06-02,2026-07-13,Consumer Services,Leela Palaces Hotels & Resorts Ltd.
+THERMAX,5969,2002-07-01,2026-07-13,Capital Goods,Thermax Ltd.
+TIINDIA,2149,2017-11-02,2026-07-13,Automobile and Auto Components,Tube Investments of India Ltd.
+TIMKEN,5939,2002-08-12,2026-07-13,Capital Goods,Timken India Ltd.
+TITAGARH,4496,2008-04-21,2026-07-13,Capital Goods,Titagarh Rail Systems Ltd.
+TITAN,6620,2000-01-03,2026-07-13,Consumer Durables,Titan Company Ltd.
+TMCV,167,2025-11-12,2026-07-13,Capital Goods,Tata Motors Ltd.
+TMPV,6620,2000-01-03,2026-07-13,Automobile and Auto Components,Tata Motors Passenger Vehicles Ltd.
+TORNTPHARM,5970,2002-07-01,2026-07-13,Healthcare,Torrent Pharmaceuticals Ltd.
+TORNTPOWER,4841,2006-11-28,2026-07-13,Power,Torrent Power Ltd.
+TRAVELFOOD,249,2025-07-14,2026-07-13,Consumer Services,Travel Food Services Ltd.
+TRENT,5967,2002-07-01,2026-07-13,Consumer Services,Trent Ltd.
+TRIDENT,5967,2002-07-01,2026-07-13,Textiles,Trident Ltd.
+TRITURBINE,3628,2011-10-28,2026-07-13,Capital Goods,Triveni Turbine Ltd.
+TTML,6407,2000-10-26,2026-07-13,Telecommunication,Tata Teleservices (Maharashtra) Ltd.
+TVSMOTOR,6468,2000-08-02,2026-07-13,Automobile and Auto Components,TVS Motor Company Ltd.
+UBL,4428,2008-07-28,2026-07-13,Fast Moving Consumer Goods,United Breweries Ltd.
+UCOBANK,5635,2003-10-09,2026-07-13,Financial Services,UCO Bank
+ULTRACEMCO,5937,2002-08-12,2026-07-13,Construction Materials,UltraTech Cement Ltd.
+UNIONBANK,5908,2002-09-24,2026-07-13,Financial Services,Union Bank of India
+UNITDSPR,5967,2002-07-01,2026-07-13,Fast Moving Consumer Goods,United Spirits Ltd.
+UNOMINDA,4797,2007-02-02,2026-07-13,Automobile and Auto Components,UNO Minda Ltd.
+UPL,5968,2002-07-01,2026-07-13,Chemicals,UPL Ltd.
+URBANCO,204,2025-09-17,2026-07-13,Consumer Services,Urban Company Ltd.
+USHAMART,6099,2002-01-01,2026-07-13,Capital Goods,Usha Martin Ltd.
+UTIAMC,1424,2020-10-13,2026-07-13,Financial Services,UTI Asset Management Company Ltd.
+VBL,2394,2016-11-08,2026-07-13,Fast Moving Consumer Goods,Varun Beverages Ltd.
+VEDL,6620,2000-01-03,2026-07-13,Metals & Mining,Vedanta Ltd.
+VIJAYA,1195,2021-09-14,2026-07-13,Healthcare,Vijaya Diagnostic Centre Ltd.
+VMM,390,2024-12-18,2026-07-13,Consumer Services,Vishal Mega Mart Ltd.
+VOLTAS,5970,2002-07-01,2026-07-13,Consumer Durables,Voltas Ltd.
+VTL,5967,2002-07-01,2026-07-13,Textiles,Vardhman Textiles Ltd.
+WAAREEENER,425,2024-10-28,2026-07-13,Capital Goods,Waaree Energies Ltd.
+WELCORP,6494,2000-06-23,2026-07-13,Capital Goods,Welspun Corp Ltd.
+WELSPUNLIV,5595,2003-12-04,2026-07-13,Textiles,Welspun Living Ltd.
+WHIRLPOOL,5939,2002-08-12,2026-07-13,Consumer Durables,Whirlpool of India Ltd.
+WIPRO,6620,2000-01-03,2026-07-13,Information Technology,Wipro Ltd.
+WOCKPHARMA,5969,2002-07-01,2026-07-13,Healthcare,Wockhardt Ltd.
+YESBANK,5183,2005-07-12,2026-07-13,Financial Services,Yes Bank Ltd.
+ZEEL,5967,2002-07-01,2026-07-13,Media Entertainment & Publication,Zee Entertainment Enterprises Ltd.
+ZENSARTECH,5967,2002-07-01,2026-07-13,Information Technology,Zensar Technolgies Ltd.
+ZENTEC,2789,2015-03-30,2026-07-13,Capital Goods,Zen Technologies Ltd.
+ZFCVINDIA,5937,2002-08-12,2026-07-13,Automobile and Auto Components,ZF Commercial Vehicle Control Systems India Ltd.
+ZYDUSLIFE,6537,2000-04-27,2026-07-13,Healthcare,Zydus Lifesciences Ltd.
+ZYDUSWELL,4115,2009-11-13,2026-07-13,Fast Moving Consumer Goods,Zydus Wellness Ltd.
