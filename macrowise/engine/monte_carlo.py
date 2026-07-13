@@ -1088,7 +1088,7 @@ class MonteCarloResults:
 
         # Success = final balance stays above 1% of initial (not just > 0)
         threshold = self.config.initial_balance * 0.01
-        self.success_rate = float((final_balances > threshold).mean())
+        self.success_rate = float((final_balances >= threshold).mean())
 
         if self.config.years > 0 and self.config.initial_balance > 0:
             median_cagr = (

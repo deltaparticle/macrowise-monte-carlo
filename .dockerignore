@@ -1,0 +1,41 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+.venv
+venv
+env
+.env
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Editors / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude
+
+# Reference / dev-only assets that don't belong in the image
+templates
+data_index level
+data_stocks_nifty500
+
+# Docs & CI
+README.md
+render.yaml
+.github
+
+# Local artifacts
+*.log
+*.tmp
+build
+dist

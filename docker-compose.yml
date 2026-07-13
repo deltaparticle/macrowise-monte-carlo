@@ -1,0 +1,21 @@
+# Local dev / staging orchestration.
+# Prod deploys should use the image directly (Render, Fly, ECS, etc.).
+
+services:
+  api:
+    build: .
+    image: macrowise-mc:latest
+    container_name: macrowise-mc
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+      - PYTHONIOENCODING=utf-8
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
