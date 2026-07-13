@@ -154,6 +154,7 @@ class MonteCarloSimulation:
     def __init__(self, config: MonteCarloConfig):
         self.config = config
         self._load_data()
+        self._validate_config()
         self._validate_assets()
         self._rng = np.random.default_rng(config.seed)
 
@@ -164,6 +165,27 @@ class MonteCarloSimulation:
         self.corr_matrix = get_correlation_matrix()
         self.cov_matrix = get_covariance_matrix()
         self.asset_stats = get_asset_statistics()
+
+    def _validate_config(self) -> None:
+        """Validate cross-field config invariants that aren't model-specific."""
+        cfg = self.config
+
+        # custom_correlation only meaningful for models 3/4 (parametric)
+        if cfg.custom_correlation is not None and cfg.model in (1, 2):
+            raise ValueError(
+                f"custom_correlation is only used by model=3 (Parameterized) and "
+                f"model=4 (Forecasted). Got model={cfg.model} (Historical/Statistical); "
+                f"correlation comes from historical data. Either remove custom_correlation "
+                f"or change model to 3 or 4."
+            )
+
+        # custom_means/stds validated later per-asset; length check happens there.
+
+        # Sanity: horizon and sim count
+        if cfg.years < 1:
+            raise ValueError(f"years must be >= 1 (got {cfg.years})")
+        if cfg.simulations < 1:
+            raise ValueError(f"simulations must be >= 1 (got {cfg.simulations})")
 
     def _validate_assets(self) -> None:
         """Validate requested assets and resolve aliases to data column names."""
@@ -219,12 +241,20 @@ class MonteCarloSimulation:
         return df.dropna(how="all")
 
     def _get_asset_means_stds(self) -> tuple[np.ndarray, np.ndarray]:
-        """Get mean and std for selected assets — raises if asset missing from stats."""
+        """Get mean and std for selected assets.
+
+        Raises ValueError if asset missing from stats and no custom values,
+        or if custom_means/custom_stds length doesn't match n_assets.
+        """
         codes = [a for a, _ in self.config.assets]
         n = len(codes)
 
         if self.config.custom_means is not None:
             means = np.array(self.config.custom_means)
+            if len(means) != n:
+                raise ValueError(
+                    f"custom_means length {len(means)} != n_assets {n}"
+                )
         else:
             missing = [c for c in codes if c not in self.asset_stats.index]
             if missing:
@@ -236,6 +266,10 @@ class MonteCarloSimulation:
 
         if self.config.custom_stds is not None:
             stds = np.array(self.config.custom_stds)
+            if len(stds) != n:
+                raise ValueError(
+                    f"custom_stds length {len(stds)} != n_assets {n}"
+                )
         else:
             missing = [c for c in codes if c not in self.asset_stats.index]
             if missing:

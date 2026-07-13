@@ -145,6 +145,13 @@ class FatTailedSampler:
         # Scale by mean and std
         returns = correlated * monthly_std[np.newaxis, np.newaxis, :] + monthly_mean[np.newaxis, np.newaxis, :]
 
+        # Clip to physically-possible range: monthly return cannot be less than -100%
+        # (portfolio can lose at most 100% of its value in one period).
+        # At very low dof (3-10), raw t-draws can produce returns below -100%, which
+        # is financially impossible. Clip at -0.99 to preserve severe losses without
+        # producing nonsense that downstream code has to clamp.
+        returns = np.clip(returns, -0.99, np.inf)
+
         return returns
 
 
